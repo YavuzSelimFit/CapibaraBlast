@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Capy Merge &amp; Blast</string>
+    <string name="title_activity_main">Capy Merge &amp; Blast</string>
+    <string name="package_name">com.capy.blast</string>
+    <string name="custom_url_scheme">com.capy.blast</string>
+</resources>

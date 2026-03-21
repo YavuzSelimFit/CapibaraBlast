@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+    <title>Capy Merge & Blast</title>
+    <meta name="description" content="A cute capybara falling-blocks math puzzle arcade game!">
+    <meta name="theme-color" content="#a8d5ba">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="assets/mascot.png">
+    <link rel="stylesheet" href="css/style.css?v=8">
+</head>
+<body>
+
+<div id="game-container">
+
+    <!-- ─── HEADER ─── -->
+    <div class="game-header">
+        <div class="top-row">
+            <div class="mascot-wrap">
+                <img src="assets/mascot.png" id="mascot" alt="Capy">
+            </div>
+            <div class="stats-row">
+                <div class="stat-card"><span class="lbl">Score</span><span class="val" id="score">0</span></div>
+                <div class="stat-card target"><span class="lbl">Target</span><span class="val" id="target">10</span></div>
+            </div>
+            <div class="next-wrap">
+                <span class="lbl">Next</span>
+                <canvas id="next-cv" width="40" height="40"></canvas>
+            </div>
+        </div>
+        <div class="progress-track"><div class="progress-fill" id="progress"></div></div>
+        <div class="powerup-row">
+            <button class="pu-btn" id="pu-hammer" title="Hammer"><img src="assets/hammer.png" alt="H"></button>
+            <button class="pu-btn" id="pu-shuffle" title="Shuffle"><img src="assets/shuffle.png" alt="S"></button>
+            <button class="pu-btn" id="pu-plus" title="+1">+1</button>
+        </div>
+    </div>
+
+    <!-- ─── BOARD ─── -->
+    <div class="board-area">
+        <canvas id="game-board"></canvas>
+    </div>
+    
+    <img src="assets/mascot_happy.png" id="popin-capy" class="popin popin-left">
+</div>
+
+<!-- ─── GAME OVER ─── -->
+<div id="gameover" class="overlay hidden">
+    <div class="modal-box">
+        <h2>💦 Out of Space!</h2>
+        <p>Score: <span id="final-score">0</span></p>
+        <button class="btn btn-primary" id="btn-revive">🎬 Watch Ad to Revive</button>
+        <button class="btn btn-secondary" id="btn-restart">Try Again</button>
+    </div>
+</div>
+
+<!-- ─── MAIN MENU ─── -->
+<div id="splash" class="overlay menu-overlay">
+    <div class="menu-content">
+        <img src="assets/main_menu_bg.png" class="menu-art" alt="Capybara Main Menu Art">
+        <h1>Capy Merge & Blast</h1>
+        <button id="btn-start" class="btn btn-primary menu-btn">Oyuna Başla</button>
+        <button id="btn-scores" class="btn btn-secondary menu-btn">En İyi Skorlar</button>
+    </div>
+</div>
+
+<!-- ─── LEADERBOARD MODAL ─── -->
+<div id="leaderboard-modal" class="overlay hidden">
+    <div class="modal-box">
+        <h2>Skor Tablosu</h2>
+        <div id="score-list" class="score-list">
+        </div>
+        <button id="btn-close-scores" class="btn btn-secondary">Kapat</button>
+    </div>
+</div>
+
+<!-- ─── SCRIPTS ─── -->
+<script type="module" src="js/Game.js?v=9"></script>
+<script>
+    // Force PWA update
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js?v=8').then(reg => {
+            reg.update(); // strongly force update check
+        });
+    }
+</script>
+</body>
+</html>

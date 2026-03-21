@@ -1,0 +1,6 @@
+{
+  "appId": "com.capy.blast",
+  "appName": "Capy Merge & Blast",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}
