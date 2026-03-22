@@ -155,10 +155,7 @@ export default class Renderer {
                 for (let cl = 0; cl < active.grid[0].length; cl++) {
                     const v = active.grid[r][cl];
                     if (v > 0) {
-                        c.shadowColor = this.colors[v] || '#fff';
-                        c.shadowBlur = 12;
                         this._drawBlock(c, v, cl * this.cellSize, r * this.cellSize, this.cellSize);
-                        c.shadowBlur = 0;
                     }
                 }
             c.restore();
@@ -224,6 +221,11 @@ export default class Renderer {
         // Complete Failsafe
         ctx.fillStyle = this.colors[val] || this.colors.default;
         ctx.beginPath(); this._roundRectPath(ctx, x, y, sz, sz, 5); ctx.fill();
+        // Added stroke to distinguish blocks from pastel backgrounds
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(0,0,0,0.15)';
+        ctx.stroke();
+
         ctx.fillStyle = 'rgba(255,255,255,0.4)';
         ctx.beginPath(); this._roundRectPath(ctx, x + 2, y + 2, sz - 4, size * 0.35, 3); ctx.fill();
         ctx.fillStyle = 'rgba(0,0,0,0.25)';
