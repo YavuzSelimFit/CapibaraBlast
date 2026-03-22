@@ -6,7 +6,8 @@ import Audio from './Audio.js?v=12';
 
 class Game {
     constructor() {
-        this.grid = new Grid(8, 14);
+        // Satır sayısını 14'ten 10'a düşürdük (Daha kısa oyun alanı)
+        this.grid = new Grid(8, 10); 
         this.renderer = new Renderer(this.grid);
         this.factory = new BlockFactory();
         this.audio = new Audio();
@@ -27,9 +28,10 @@ class Game {
         this.AdMob = window.Capacitor?.Plugins?.AdMob;
         
         this.isGameOver = false;
-        this.isPaused = true; // starts paused on splash
+        this.isPaused = true; 
 
-        this.baseSpeed = 0.0018;
+        // Başlangıç hızını %50 yavaşlattık
+        this.baseSpeed = 0.0008; 
         this.speed = this.baseSpeed;
         this.lastTime = 0;
         this.lockDelay = 350;
@@ -204,18 +206,20 @@ class Game {
 
         if (cross) { this.score += 30; this._shake(); if (navigator.vibrate) navigator.vibrate([80, 40, 80]); }
 
-        if (sum === this.targetNumber) {
-            this.score += 50 * total + (cross ? 100 : 0);
+        this.score += 50 * total;
+        if (sum > 32) {
+            this.score += 200; // Ekstra puan
             this.grid.triggerAoE(lines);
             this._mathBlast();
-            this.speed = Math.min(this.speed + 0.0002, 0.008);
-            this.targetNumber = 8 + Math.floor(Math.random() * 10);
-            document.getElementById('target').textContent = this.targetNumber;
             if (navigator.vibrate) navigator.vibrate(180);
+        } else if (sum === 16) {
+            if (navigator.vibrate) navigator.vibrate(50);
         } else {
-            this.score += 10 * total;
             if (navigator.vibrate) navigator.vibrate(25);
         }
+        
+        this.speed = Math.min(this.speed + 0.0001, 0.004);
+        document.getElementById('target').textContent = '16'; 
 
         document.getElementById('score').textContent = this.score;
         this._progress(total);
@@ -359,7 +363,7 @@ class Game {
     _reset() {
         const m = document.getElementById('mascot');
         if (m) { m.src = 'assets/mascot.png'; m.classList.remove('mascot-panic'); }
-        this.grid = new Grid(8, 14);
+        this.grid = new Grid(8, 10);
         this.renderer.grid = this.grid;
         this.renderer.resize();
         this.score = 0;

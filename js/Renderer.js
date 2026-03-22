@@ -189,11 +189,9 @@ export default class Renderer {
         let useFallbackTexture = false;
         
         if (!img || !img.complete || img.naturalWidth === 0) {
-            img = this.imgAssets[1];
             useFallbackTexture = true;
         }
 
-        // Şeklin boyutuna göre dinamik köşe yuvarlatma (Maksimum 8px)
         const sz = size + 0.5; 
         const radius = Math.min(8, sz * 0.25); 
 
@@ -202,50 +200,84 @@ export default class Renderer {
         this._roundRectPath(ctx, x, y, sz, sz, radius);
         ctx.clip();
 
-        if (img && img.complete && img.naturalWidth > 0) {
-            if (useFallbackTexture) {
-                ctx.save();
-                ctx.translate(x, y);
-                // Stretch image to FULL cell to connect
-                ctx.drawImage(img, 0, 0, sz, sz);
-                
-                ctx.globalCompositeOperation = 'source-atop';
-                ctx.fillStyle = this.colors[val] || this.colors.default;
-                ctx.globalAlpha = 0.65;
-                ctx.fillRect(0, 0, sz, sz);
-                
-                ctx.globalCompositeOperation = 'source-over';
-                ctx.globalAlpha = 1.0;
-                
-                ctx.fillStyle = 'white';
-                ctx.strokeStyle = '#333';
-                ctx.lineWidth = Math.max(1, size * 0.08); // Çizgi kalınlığı da dinamik olsun
-                ctx.font = `900 ${Math.round(size * 0.45)}px Nunito, sans-serif`;
-                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                ctx.strokeText(val, size / 2, size / 2 + 1);
-                ctx.fillText(val, size / 2, size / 2 + 1);
-                ctx.restore();
-            } else {
-                ctx.drawImage(img, x, y, sz, sz);
-            }
+        // 1. ADIM: Bloğun kendi orijinal pastel rengini arka plana boya
+        ctx.fillStyle = this.colors[val] || this.colors.default;
+        ctx.fillRect(x, y, sz, sz);
+
+        if (!useFallbackTexture) {
+            // 2. ADIM: Yapay Zeka görselini Multiply (Çoğalt) moduyla çiz!
+            // Bu hile sayesinde görseldeki BEYAZ renkler tamamen YOK OLUR,
+            // Sadece gölgeler ve detaylar alttaki pastel renge işlenir.
+            ctx.globalCompositeOperation = 'multiply';
+            ctx.drawImage(img, x, y, sz, sz);
+            
+            // Çizgi ve parlama efekti ekleyelim
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+            ctx.stroke();
+            
+            // AI görselinin üstüne kalın, 3D etkili yazımızı çiziyoruz
+            this._drawNumber(ctx, val, x, y, sz);
+            
             ctx.restore();
             return;
         }
 
-        // Complete Failsafe
-        ctx.fillStyle = this.colors[val] || this.colors.default;
-        ctx.beginPath(); this._roundRectPath(ctx, x, y, sz, sz, radius); ctx.fill();
-        // Added stroke to distinguish blocks from pastel backgrounds
+        // Eğer resim yüklenemediyse (Failsafe Modu)
         ctx.lineWidth = 1;
         ctx.strokeStyle = 'rgba(0,0,0,0.15)';
         ctx.stroke();
 
         ctx.fillStyle = 'rgba(255,255,255,0.4)';
         ctx.beginPath(); this._roundRectPath(ctx, x + 2, y + 2, sz - 4, size * 0.35, radius * 0.5); ctx.fill();
-        ctx.fillStyle = 'rgba(0,0,0,0.25)';
-        ctx.font = `${Math.round(size * 0.45)}px Nunito, sans-serif`;
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.fillText(val, x + size / 2, y + size / 2 + 1);
+        
+        this._drawNumber(ctx, val, x, y, sz);
+
+        ctx.restore();
+    }
+
+    _drawNumber(ctx, val, x, y, size) {
+        ctx.save();
+        const cx = x + size / 2;
+        const cy = y + size / 2;
+        
+        const valStr = val.toString();
+        const len = valStr.length;
+        
+        let fontRatio = 0.55;
+        if (len === 2) fontRatio = 0.45;
+        else if (len >= 3) fontRatio = 0.33;
+
+        ctx.font = `900 ${Math.round(size * fontRatio)}px Nunito, sans-serif`;
+        ctx.textAlign = 'center'; 
+        ctx.textBaseline = 'middle';
+
+        // Outer Dropshadow
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+        ctx.shadowBlur = size * 0.15;
+        ctx.shadowOffsetY = size * 0.08;
+
+        // Dark Outline Stroke
+        ctx.lineWidth = Math.max(2, size * 0.12);
+        ctx.strokeStyle = '#2c3e50'; 
+        ctx.strokeText(valStr, cx, cy + size * 0.05);
+
+        ctx.shadowBlur = 0; 
+        ctx.shadowOffsetY = 0;
+
+        // Gradient Fill
+        const grad = ctx.createLinearGradient(0, cy - size * 0.25, 0, cy + size * 0.25);
+        grad.addColorStop(0, '#ffffff');
+        grad.addColorStop(1, '#f1f2f6');
+        ctx.fillStyle = grad;
+        ctx.fillText(valStr, cx, cy + size * 0.05);
+
+        // Inner Bright Stroke for Pop
+        ctx.lineWidth = Math.max(1, size * 0.03);
+        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+        ctx.strokeText(valStr, cx, cy + size * 0.03);
+
         ctx.restore();
     }
 

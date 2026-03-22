@@ -32,12 +32,14 @@ export default class Grid {
 
     findCompleteLines() {
         const lines = { rows: [], cols: [] };
-        for (let y = 0; y < this.height; y++)
-            if (this.cells[y].every(c => c > 0)) lines.rows.push(y);
+        for (let y = 0; y < this.height; y++) {
+            const rowSum = this.cells[y].reduce((a, b) => a + b, 0);
+            if (rowSum === 16 || rowSum > 32) lines.rows.push(y);
+        }
         for (let x = 0; x < this.width; x++) {
-            let ok = true;
-            for (let y = 0; y < this.height; y++) if (this.cells[y][x] === 0) { ok = false; break; }
-            if (ok) lines.cols.push(x);
+            let colSum = 0;
+            for (let y = 0; y < this.height; y++) colSum += this.cells[y][x];
+            if (colSum === 16 || colSum > 32) lines.cols.push(x);
         }
         return lines;
     }
