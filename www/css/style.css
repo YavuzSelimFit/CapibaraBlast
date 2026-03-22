@@ -73,13 +73,14 @@ body::before {
 
 /* ★ CRITICAL: matches <div id="mascot"> */
 #mascot {
-    width: 100px; height: 100px;
+    width: 100px; 
+    height: 75px; /* 100px'den 75px'e düşürdük: Alt kısımdaki yazıyı donanımsal olarak kestik */
     flex-shrink: 0;
     margin: auto;
     background-image: var(--url-walk);
-    background-size: 400px auto; /* 4 * 100px width, height handles 16:9 natively */
-    background-position: 0 35%; /* Shift tracking down to crop AI watermark text at bottom */
-    mix-blend-mode: multiply; /* Natively converts #FFFFFF AI background to transparent */
+    background-size: 400px auto; 
+    background-position: left top; /* Orijinal sıfır noktasına geri çektik */
+    mix-blend-mode: multiply; 
     display: block;
     transition: transform .3s cubic-bezier(.175,.885,.32,1.275);
     animation: mascotWalk 0.7s steps(4) infinite;
@@ -90,7 +91,7 @@ body::before {
 }
 
 @keyframes mascotWalk {
-    100% { background-position: -400px 35%; }
+    100% { background-position: -400px top; } /* Animasyonun da sıfır noktasından akmasını sağladık */
 }
 
 .stats-row {
@@ -176,7 +177,8 @@ body::before {
 .popin {
     position: absolute;
     bottom: 25%;
-    width: 150px; height: 150px;
+    width: 150px; 
+    height: 110px; /* 150px'den 110px'e düşürdük: Alt kısımları makasladık */
     object-fit: contain;
     pointer-events: none;
     z-index: 400;
@@ -189,8 +191,8 @@ body::before {
 .popin-right.show { transform: translateX(-180px) rotate(-10deg); }
 
 .popin-party, .popin-panic {
-    background-size: 600px auto; /* 4 * 150px wrapper */
-    background-position: 0 35%; /* Shift tracking to crop out AI string formats */
+    background-size: 600px auto; 
+    background-position: left top; /* Kırpma hatasını düzelttik */
     mix-blend-mode: multiply;
     animation: popinWalk 0.7s steps(4) infinite;
 }
@@ -198,7 +200,7 @@ body::before {
 .popin-panic { background-image: var(--url-panic); }
 
 @keyframes popinWalk {
-    100% { background-position: -600px 35%; }
+    100% { background-position: -600px top; }
 }
 
 /* ═══════════════════════════════════════════

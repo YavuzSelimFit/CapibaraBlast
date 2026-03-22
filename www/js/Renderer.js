@@ -13,8 +13,19 @@ export default class Renderer {
         this.colors = { 1:'#a8e6cf', 2:'#87ceeb', 3:'#ffd3b6', 4:'#c3aed6', 6:'#f5b7b1', 8:'#f9e79f', default:'#d5dbdb' };
 
         this._loadAssets();
+        
+        // YENİ EKLENEN KISIM: DOM boyutları tamamen hesaplandığında canvas'ı boyutlandır.
+        const area = document.querySelector('.board-area');
+        if (area && window.ResizeObserver) {
+            // Elementin boyutu her değiştiğinde (veya ilk hesaplandığında) resize() çalışır.
+            new ResizeObserver(() => this.resize()).observe(area);
+        } else {
+            // Eski tarayıcılar için yedek plan (fallback)
+            window.addEventListener('resize', () => this.resize());
+            setTimeout(() => this.resize(), 150); 
+        }
+        
         this.resize();
-        window.addEventListener('resize', () => this.resize());
     }
 
     _loadAssets() {
