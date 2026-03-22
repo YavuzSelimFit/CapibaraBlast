@@ -73,10 +73,11 @@ body::before {
 
 /* ★ CRITICAL: matches <div id="mascot"> */
 #mascot {
-    width: 64px; height: 64px;
+    width: 120px; height: 120px;
+    flex-shrink: 0;
     background-image: var(--url-walk);
-    background-size: 256px 64px; /* 1x4 horizontal strip */
-    background-position: 0 0;
+    background-size: 480px auto; /* 4 * 120px width, height handles 16:9 natively */
+    background-position: 0 60%; /* Center vertically to crop 16:9 sky/ground margins */
     mix-blend-mode: multiply; /* Natively converts #FFFFFF AI background to transparent */
     display: block;
     transition: transform .3s cubic-bezier(.175,.885,.32,1.275);
@@ -88,7 +89,7 @@ body::before {
 }
 
 @keyframes mascotWalk {
-    100% { background-position: -256px 0; }
+    100% { background-position: -480px 60%; }
 }
 
 .stats-row {
@@ -188,8 +189,8 @@ body::before {
 .popin-right.show { transform: translateX(-180px) rotate(-10deg); }
 
 .popin-party, .popin-panic {
-    background-size: 600px 150px;
-    background-position: 0 0;
+    background-size: 600px auto; /* 4 * 150px wrapper */
+    background-position: 0 60%; /* Auto vertical center cropping */
     mix-blend-mode: multiply;
     animation: popinWalk 0.7s steps(4) infinite;
 }
@@ -197,7 +198,7 @@ body::before {
 .popin-panic { background-image: var(--url-panic); }
 
 @keyframes popinWalk {
-    100% { background-position: -600px 0; }
+    100% { background-position: -600px 60%; }
 }
 
 /* ═══════════════════════════════════════════

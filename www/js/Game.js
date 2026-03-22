@@ -13,6 +13,8 @@ class Game {
         this.score = 0;
         this.highScores = JSON.parse(localStorage.getItem('capy_scores') || '[]');
         this.targetNumber = 10;
+        
+        this.trauma = 0; // Screen shake decay variable
 
         this.active = null;   // { grid, x, y }
         this.next = null;
@@ -50,29 +52,35 @@ class Game {
     }
 
     _spawn() {
-        const piece = this.next || this._newPiece();
-        this.active = {
-            grid: piece.grid,
-            x: Math.floor(this.grid.width / 2) - Math.floor(piece.grid[0].length / 2),
-            y: -piece.grid.length
-        };
+        if (!this.next) this.next = this._newPiece();
+        this.active = this.next;
         this.next = this._newPiece();
         this.renderer.updateNext(this.next);
-        this.lockTimer = 0;
+        
+        this.active.vx = this.active.x;
+        this.active.vy = this.active.y;
+        this.active.scaleX = 1.0;
+        this.active.scaleY = 1.0;
 
-        // Game over check
-        if (!this.grid.canPlace(this.active.grid, this.active.x, 0)) {
+        if (!this.grid.canPlace(this.active.grid, this.active.x, this.active.y)) {
             this.isGameOver = true;
             this._showGameOver();
         }
     }
 
-    _loop(ts) {
-        if (this.isGameOver || this.isPaused) return;
-        const dt = ts - this.lastTime;
-        this.lastTime = ts;
+    _loop(timestamp) {
+        if (this.isPaused || this.isGameOver) return;
+        
+        const dt = timestamp - this.lastTime;
+        this.lastTime = timestamp;
 
-        this._tick(dt);
+        // Decay trauma
+        if (this.trauma > 0) {
+            this.trauma = Math.max(0, this.trauma - 0.03);
+        }
+
+        this.input.update();
+        this._tick(dt); // Keep _tick for game logic
         this.renderer.render(this.active);
 
         requestAnimationFrame(t => this._loop(t));
@@ -80,15 +88,26 @@ class Game {
 
     _tick(dt) {
         if (!this.active) return;
-        const nextY = this.active.y + this.speed * dt;
 
-        if (!this.grid.canPlace(this.active.grid, this.active.x, Math.ceil(nextY))) {
-            this.lockTimer += dt;
-            if (this.lockTimer >= this.lockDelay) this._lock();
-        } else {
-            this.active.y = nextY;
-            this.lockTimer = 0;
+        this.active.y += this.speed * dt;
+        if (!this.grid.canPlace(this.active.grid, this.active.x, this.active.y)) {
+            this.active.y = Math.floor(this.active.y);
+            this._lock();
+            this._shake(0.15); // subtle shake on normal lock
+            return;
         }
+
+        // Tweening & Squash/Stretch Mathematics
+        const lerpDelay = 0.35;
+        const oldVy = this.active.vy;
+        
+        this.active.vx += (this.active.x - this.active.vx) * lerpDelay;
+        this.active.vy += (this.active.y - this.active.vy) * lerpDelay;
+        
+        const dy = this.active.vy - oldVy;
+        const stretch = Math.min(0.4, dy * 1.5); // Max 40% elongation
+        this.active.scaleY = 1.0 + stretch;
+        this.active.scaleX = 1.0 / this.active.scaleY; // Area conservation: A = w * h
     }
 
     steer(dx) {
@@ -107,9 +126,14 @@ class Game {
         while (this.grid.canPlace(this.active.grid, this.active.x, y + 1)) y++;
         this.active.y = y;
         this._lock();
-        this._shake();
+        this._shake(0.6); // Massive trauma spike
     }
 
+    _shake(intensity = 0.5) {
+        this.trauma = Math.min(1.0, this.trauma + intensity);
+        if (navigator.vibrate) navigator.vibrate(50);
+    }
+    
     _lock() {
         if (!this.active) return;
         const gx = this.active.x, gy = Math.floor(this.active.y);
@@ -177,7 +201,6 @@ class Game {
 
     _mathBlast() {
         const m = document.getElementById('mascot');
-        if (m) { m.src = 'assets/mascot_happy.png'; setTimeout(() => { if (!this.isGameOver) m.src = 'assets/mascot.png'; }, 1200); }
         const w = document.querySelector('.mascot-wrap');
         if (w) { w.classList.remove('math-blast-active'); void w.offsetWidth; w.classList.add('math-blast-active'); }
     }
@@ -200,9 +223,9 @@ class Game {
         
         // Randomly pick left or right slide
         const side = Math.random() > 0.5 ? 'left' : 'right';
-        pop.className = `popin popin-${side}`;
-        // Mascot state based on how big the merge is
-        pop.src = val >= 6 ? 'assets/mascot_panic.png' : 'assets/mascot_happy.png';
+        // Apply state-based sprite dynamically (Party on combos, Panic on huge dangerous merges)
+        const stateClass = val >= 6 ? 'popin-panic' : 'popin-party';
+        pop.className = `popin popin-${side} ${stateClass}`;
         
         // Force reflow and trigger CSS animation
         void pop.offsetWidth;
@@ -216,7 +239,7 @@ class Game {
 
     _showGameOver() {
         const m = document.getElementById('mascot');
-        if (m) { m.src = 'assets/mascot_panic.png'; m.classList.add('mascot-panic'); }
+        if (m) { m.classList.add('mascot-panic'); }
         
         // Save Score
         this.highScores.push(this.score);
@@ -269,7 +292,7 @@ class Game {
         document.getElementById('btn-revive')?.addEventListener('click', () => {
             document.getElementById('gameover').classList.add('hidden');
             const m = document.getElementById('mascot');
-            if (m) { m.src = 'assets/mascot.png'; m.classList.remove('mascot-panic'); }
+            if (m) { m.classList.remove('mascot-panic'); }
             this.isGameOver = false;
             for (let i = 0; i < 3; i++) this.grid.cells[i] = new Array(this.grid.width).fill(0);
             for (let i = this.grid.height - 3; i < this.grid.height; i++) this.grid.cells[i] = new Array(this.grid.width).fill(0);
@@ -314,6 +337,7 @@ class Game {
         this.isGameOver = false;
         document.getElementById('score').textContent = '0';
         document.getElementById('target').textContent = '10';
+        this.trauma = 0;
         this.next = this._newPiece();
         this._spawn();
         this.lastTime = performance.now();

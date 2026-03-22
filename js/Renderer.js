@@ -7,8 +7,9 @@ export default class Renderer {
         this.nextCtx = this.nextCv ? this.nextCv.getContext('2d') : null;
 
         this.cellSize = 0;
+        this.cellSize = 0;
         this.imgAssets = {};
-        // this.particles = []; // This will be replaced by a Particles object
+        this.particles = []; // Restored critical array initialization
         this.colors = { 1:'#a8e6cf', 2:'#87ceeb', 3:'#ffd3b6', 4:'#c3aed6', 6:'#f5b7b1', 8:'#f9e79f', default:'#d5dbdb' };
 
         this._loadAssets();
@@ -20,7 +21,7 @@ export default class Renderer {
         [1,2,3].forEach(n => {
             const img = new Image();
             img.onload = () => { 
-                this.imgAssets[n] = this._processAlpha(img);
+                this.imgAssets[n] = img;  // DO NOT run grid blocks through the Alpha filter (they are already transparent!)
                 if (window.gameInstance) { 
                     this.render(window.gameInstance.active); 
                     this.updateNext(window.gameInstance.next); 
@@ -56,13 +57,13 @@ export default class Renderer {
         const imageData = ctx.getImageData(0, 0, offscreen.width, offscreen.height);
         const data32 = new Uint32Array(imageData.data.buffer);
         
-        // Bitwise Little-Endian RGBA -> ABGR check (Phase 1)
+        // Strict Bitwise Little-Endian RGBA -> ABGR check (Phase 1)
         for (let i = 0; i < data32.length; i++) {
             const val = data32[i];
             const r = val & 0xFF;
             const g = (val >> 8) & 0xFF;
             const b = (val >> 16) & 0xFF;
-            if (r > 210 && g > 210 && b > 210) {
+            if (r > 240 && g > 240 && b > 240) {
                 data32[i] = 0; // Pure transparent A=0 R=0 G=0 B=0
             }
         }
