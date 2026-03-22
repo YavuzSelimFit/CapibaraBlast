@@ -57,12 +57,17 @@ class Game {
         this.next = this._newPiece();
         this.renderer.updateNext(this.next);
         
+        // EKSİK OLAN KISIM: Başlangıç x ve y koordinatlarını belirle
+        this.active.x = Math.floor((this.grid.width - this.active.grid[0].length) / 2);
+        this.active.y = -this.active.grid.length; 
+        
         this.active.vx = this.active.x;
         this.active.vy = this.active.y;
         this.active.scaleX = 1.0;
         this.active.scaleY = 1.0;
 
-        if (!this.grid.canPlace(this.active.grid, this.active.x, this.active.y)) {
+        let checkY = Math.max(0, Math.floor(this.active.y));
+        if (!this.grid.canPlace(this.active.grid, this.active.x, checkY)) {
             this.isGameOver = true;
             this._showGameOver();
         }
@@ -151,6 +156,7 @@ class Game {
         this.grid.place(this.active.grid, gx, gy);
         const maxMerge = this.grid.mergeAdjacent();
         if (maxMerge >= 4) this._triggerPopin(maxMerge);
+        this.grid.applyGravity(); // Collapse isolated towers after merge gaps
         this._checkClears();
 
         this.active = null;
@@ -268,7 +274,11 @@ class Game {
             if (gx < 0 || gx >= this.grid.width || gy < 0 || gy >= this.grid.height) return;
             if (this.grid.cells[gy][gx] <= 0) return;
 
-            if (this.powerUpMode === 'hammer') { this.grid.cells[gy][gx] = 0; this.renderer.boom(gx * this.renderer.cellSize + 18, gy * this.renderer.cellSize + 18, '#fff', 12); }
+            if (this.powerUpMode === 'hammer') { 
+                this.grid.cells[gy][gx] = 0; 
+                this.renderer.boom(gx * this.renderer.cellSize + 18, gy * this.renderer.cellSize + 18, '#fff', 12); 
+                this.grid.applyGravity(); // Drop everything resting on the destroyed block
+            }
             else if (this.powerUpMode === 'plus') { this.grid.cells[gy][gx]++; this.renderer.boom(gx * this.renderer.cellSize + 18, gy * this.renderer.cellSize + 18, '#ff0', 6); }
 
             this.powerUpMode = null;
@@ -294,8 +304,13 @@ class Game {
             const m = document.getElementById('mascot');
             if (m) { m.classList.remove('mascot-panic'); }
             this.isGameOver = false;
-            for (let i = 0; i < 3; i++) this.grid.cells[i] = new Array(this.grid.width).fill(0);
-            for (let i = this.grid.height - 3; i < this.grid.height; i++) this.grid.cells[i] = new Array(this.grid.width).fill(0);
+            
+            // Clear top 6 rows so player has room to breathe
+            for (let i = 0; i < 6; i++) {
+                this.grid.cells[i] = new Array(this.grid.width).fill(0);
+            }
+            this.grid.applyGravity(); // Drop any giant hovering blocks down to the floor
+            
             this._spawn();
             this.lastTime = performance.now();
             this._loop(this.lastTime);
@@ -345,4 +360,7 @@ class Game {
     }
 }
 
-window.addEventListener('DOMContentLoaded', () => new Game().boot());
+window.addEventListener('DOMContentLoaded', () => {
+    window.gameInstance = new Game();
+    window.gameInstance.boot();
+});

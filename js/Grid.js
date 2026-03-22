@@ -87,5 +87,27 @@ export default class Grid {
                 }
         }
         return maxMergedValue;
+    } // CRITICAL RESTORED BRACE
+
+    applyGravity() {
+        let moved = false;
+        for (let x = 0; x < this.width; x++) {
+            // Down-to-up scan to fill gaps
+            for (let y = this.height - 2; y >= 0; y--) {
+                if (this.cells[y][x] > 0) {
+                    let dropY = y;
+                    // Slide block down as long as the cell below is empty
+                    while (dropY + 1 < this.height && this.cells[dropY + 1][x] === 0) {
+                        dropY++;
+                    }
+                    if (dropY !== y) {
+                        this.cells[dropY][x] = this.cells[y][x];
+                        this.cells[y][x] = 0;
+                        moved = true;
+                    }
+                }
+            }
+        }
+        return moved;
     }
 }
