@@ -2,12 +2,14 @@ import Renderer from './Renderer.js?v=9';
 import Grid from './Grid.js?v=9';
 import Input from './Input.js?v=9';
 import BlockFactory from './BlockFactory.js?v=9';
+import Audio from './Audio.js?v=12';
 
 class Game {
     constructor() {
         this.grid = new Grid(8, 14);
         this.renderer = new Renderer(this.grid);
         this.factory = new BlockFactory();
+        this.audio = new Audio();
         this.input = null;
 
         this.score = 0;
@@ -19,6 +21,11 @@ class Game {
         this.active = null;   // { grid, x, y }
         this.next = null;
 
+        // Bridge Capacitor Plugins
+        this.Haptics = window.Capacitor?.Plugins?.Haptics;
+        this.Pref = window.Capacitor?.Plugins?.Preferences;
+        this.AdMob = window.Capacitor?.Plugins?.AdMob;
+        
         this.isGameOver = false;
         this.isPaused = true; // starts paused on splash
 
@@ -38,6 +45,8 @@ class Game {
         // btn-start in _bindUI will trigger the transition.
         this.next = this._newPiece();
         this.renderer.updateNext(this.next);
+        this._loadState(); // Attempt to resume session
+        this._initAdMob();
     }
 
     _start() {
@@ -121,7 +130,7 @@ class Game {
         const sy = this.active.y < 0 ? 0 : Math.floor(this.active.y);
         if (this.grid.canPlace(this.active.grid, nx, sy)) {
             this.active.x = nx;
-            if (navigator.vibrate) navigator.vibrate(4);
+            this._haptic('LIGHT');
         }
     }
 
@@ -130,6 +139,7 @@ class Game {
         let y = Math.floor(this.active.y < 0 ? 0 : this.active.y);
         while (this.grid.canPlace(this.active.grid, this.active.x, y + 1)) y++;
         this.active.y = y;
+        this._haptic('HEAVY');
         this._lock();
         this._shake(0.6); // Massive trauma spike
     }
@@ -142,7 +152,8 @@ class Game {
     _lock() {
         if (!this.active) return;
         const gx = this.active.x, gy = Math.floor(this.active.y);
-        if (navigator.vibrate) navigator.vibrate(12);
+        this._haptic('MEDIUM');
+        this.audio.playDrop();
 
         // Landing particles
         const s = this.renderer.cellSize;
@@ -155,9 +166,14 @@ class Game {
 
         this.grid.place(this.active.grid, gx, gy);
         const maxMerge = this.grid.mergeAdjacent();
+        if (maxMerge > 0) {
+            this._haptic('MEDIUM');
+            this.audio.playMerge(maxMerge);
+        }
         if (maxMerge >= 4) this._triggerPopin(maxMerge);
         this.grid.applyGravity(); // Collapse isolated towers after merge gaps
         this._checkClears();
+        this._saveState(); // Persistent save on every block lock
 
         this.active = null;
         this._spawn();
@@ -244,6 +260,8 @@ class Game {
     }
 
     _showGameOver() {
+        this.audio.playGameOver();
+        this._haptic('HEAVY');
         const m = document.getElementById('mascot');
         if (m) { m.classList.add('mascot-panic'); }
         
@@ -299,21 +317,19 @@ class Game {
         document.getElementById('btn-scores')?.addEventListener('click', () => this._showLeaderboard());
         document.getElementById('btn-close-scores')?.addEventListener('click', () => document.getElementById('leaderboard-modal').classList.add('hidden'));
 
-        document.getElementById('btn-revive')?.addEventListener('click', () => {
-            document.getElementById('gameover').classList.add('hidden');
-            const m = document.getElementById('mascot');
-            if (m) { m.classList.remove('mascot-panic'); }
-            this.isGameOver = false;
-            
-            // Clear top 6 rows so player has room to breathe
-            for (let i = 0; i < 6; i++) {
-                this.grid.cells[i] = new Array(this.grid.width).fill(0);
+        document.getElementById('btn-revive')?.addEventListener('click', async () => {
+            if (this.AdMob) {
+                try {
+                    // Show Rewarded Ad (Test ID for Android)
+                    await this.AdMob.showRewardedAd();
+                    // On success (or if testing), we allow revive. 
+                    // Note: Real apps should listen for 'rewardedAdReward' event.
+                } catch (e) {
+                    console.warn('AdMob error or cancelled, allowing revive anyway for testing', e);
+                }
             }
-            this.grid.applyGravity(); // Drop any giant hovering blocks down to the floor
             
-            this._spawn();
-            this.lastTime = performance.now();
-            this._loop(this.lastTime);
+            this._executeRevive();
         });
 
         document.getElementById('btn-restart')?.addEventListener('click', () => {
@@ -357,6 +373,73 @@ class Game {
         this._spawn();
         this.lastTime = performance.now();
         this._loop(this.lastTime);
+        this._saveState(); // Reset saved state too
+    }
+
+    _haptic(style) {
+        if (!this.Haptics) return;
+        this.Haptics.impact({ style: style });
+    }
+
+    async _saveState() {
+        if (!this.Pref || this.isGameOver) return;
+        const state = {
+            cells: this.grid.cells,
+            score: this.score,
+            targetNumber: this.targetNumber,
+            speed: this.speed
+        };
+        await this.Pref.set({ key: 'capy_state', value: JSON.stringify(state) });
+    }
+
+    async _loadState() {
+        if (!this.Pref) return;
+        const { value } = await this.Pref.get({ key: 'capy_state' });
+        if (value) {
+            try {
+                const state = JSON.parse(value);
+                this.grid.cells = state.cells;
+                this.score = state.score;
+                this.targetNumber = state.targetNumber;
+                this.speed = state.speed;
+                this.renderer.resize();
+                document.getElementById('score').textContent = this.score;
+                document.getElementById('target').textContent = this.targetNumber;
+            } catch (e) {
+                console.error('Failed to load save state', e);
+            }
+        }
+    }
+
+    async _executeRevive() {
+        document.getElementById('gameover').classList.add('hidden');
+        const m = document.getElementById('mascot');
+        if (m) { m.classList.remove('mascot-panic'); }
+        this.isGameOver = false;
+        
+        // Clear top 6 rows so player has room to breathe
+        for (let i = 0; i < 6; i++) {
+            this.grid.cells[i] = new Array(this.grid.width).fill(0);
+        }
+        this.grid.applyGravity(); // Drop any giant hovering blocks down to the floor
+        
+        this._spawn();
+        this.lastTime = performance.now();
+        this._loop(this.lastTime);
+    }
+
+    async _initAdMob() {
+        if (!this.AdMob) return;
+        try {
+            await this.AdMob.initialize();
+            // Pre-load Rewarded Ad (Android Test ID)
+            await this.AdMob.prepareRewardedAd({
+                adId: 'ca-app-pub-3940256099942544/5224354917',
+                isTesting: true
+            });
+        } catch (e) {
+            console.warn('AdMob initialization failed', e);
+        }
     }
 }
 
