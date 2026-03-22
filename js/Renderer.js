@@ -8,7 +8,7 @@ export default class Renderer {
 
         this.cellSize = 0;
         this.imgAssets = {};
-        this.particles = [];
+        // this.particles = []; // This will be replaced by a Particles object
         this.colors = { 1:'#a8e6cf', 2:'#87ceeb', 3:'#ffd3b6', 4:'#c3aed6', 6:'#f5b7b1', 8:'#f9e79f', default:'#d5dbdb' };
 
         this._loadAssets();
@@ -19,10 +19,55 @@ export default class Renderer {
     _loadAssets() {
         [1,2,3].forEach(n => {
             const img = new Image();
-            img.onload = () => { if (window.gameInstance) { this.render(window.gameInstance.active); this.updateNext(window.gameInstance.next); } };
+            img.onload = () => { 
+                this.imgAssets[n] = this._processAlpha(img);
+                if (window.gameInstance) { 
+                    this.render(window.gameInstance.active); 
+                    this.updateNext(window.gameInstance.next); 
+                } 
+            };
             img.src = `assets/block_${n}.png`;
-            this.imgAssets[n] = img;
         });
+
+        // Pre-process animated sprite sheets to global CSS variables
+        const loadSheet = (src, varName) => {
+            const sheet = new Image();
+            sheet.onload = () => {
+                const cleanCanvas = this._processAlpha(sheet);
+                document.documentElement.style.setProperty(varName, `url(${cleanCanvas.toDataURL('image/png')})`);
+            };
+            sheet.src = src;
+        };
+
+        loadSheet('assets/capy_walk_sheet.png', '--url-walk');
+        loadSheet('assets/capy_party_sheet.png', '--url-party');
+        loadSheet('assets/capy_panic_sheet.png', '--url-panic');
+    }
+
+    _processAlpha(image) {
+        const offscreen = document.createElement('canvas');
+        offscreen.width = image.naturalWidth || image.width;
+        offscreen.height = image.naturalHeight || image.height;
+        if (offscreen.width === 0) return image;
+        
+        const ctx = offscreen.getContext('2d', { willReadFrequently: true });
+        ctx.drawImage(image, 0, 0);
+        
+        const imageData = ctx.getImageData(0, 0, offscreen.width, offscreen.height);
+        const data32 = new Uint32Array(imageData.data.buffer);
+        
+        // Bitwise Little-Endian RGBA -> ABGR check (Phase 1)
+        for (let i = 0; i < data32.length; i++) {
+            const val = data32[i];
+            const r = val & 0xFF;
+            const g = (val >> 8) & 0xFF;
+            const b = (val >> 16) & 0xFF;
+            if (r > 210 && g > 210 && b > 210) {
+                data32[i] = 0; // Pure transparent A=0 R=0 G=0 B=0
+            }
+        }
+        ctx.putImageData(imageData, 0, 0);
+        return offscreen;
     }
 
     resize() {
@@ -94,18 +139,28 @@ export default class Renderer {
 
         // Active piece (smooth sub-pixel)
         if (active) {
+            c.save();
+            const activeW = active.grid[0].length * this.cellSize;
+            const activeH = active.grid.length * this.cellSize;
+            
+            const px = active.vx * this.cellSize;
+            const py = active.vy * this.cellSize;
+            
+            c.translate(px + activeW/2, py + activeH/2);
+            c.scale(active.scaleX, active.scaleY);
+            c.translate(-(activeW/2), -(activeH/2));
+
             for (let r = 0; r < active.grid.length; r++)
                 for (let cl = 0; cl < active.grid[0].length; cl++) {
                     const v = active.grid[r][cl];
                     if (v > 0) {
-                        const px = (active.x + cl) * this.cellSize;
-                        const py = (active.y + r) * this.cellSize;
                         c.shadowColor = this.colors[v] || '#fff';
                         c.shadowBlur = 12;
-                        this._drawBlock(c, v, px, py, this.cellSize);
+                        this._drawBlock(c, v, cl * this.cellSize, r * this.cellSize, this.cellSize);
                         c.shadowBlur = 0;
                     }
                 }
+            c.restore();
         }
 
         this._tickParticles(c);

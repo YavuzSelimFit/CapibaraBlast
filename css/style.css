@@ -4,14 +4,17 @@
    VARIABLES
    ═══════════════════════════════════════════ */
 :root {
-    --bg: #2c3e50;
+    --bg: #1c1c1c;
     --card: #f4f1ea;
     --green: #a8d5ba;
     --green-dark: #7cb899;
-    --blue: #85c1e9;
-    --board: #e8e0d0;
-    --text: #3a3a3a;
+    --blue: #2980b9;
+    --board: #f8f9fa;
+    --text: #333;
     --shadow: rgba(0,0,0,0.1);
+    --url-walk: none;
+    --url-party: none;
+    --url-panic: none;
 }
 
 /* ═══════════════════════════════════════════
@@ -68,14 +71,24 @@ body::before {
 
 .mascot-wrap { flex-shrink: 0; }
 
-/* ★ CRITICAL: matches <img id="mascot"> */
+/* ★ CRITICAL: matches <div id="mascot"> */
 #mascot {
     width: 64px; height: 64px;
-    border-radius: 50%;
-    object-fit: cover;
-    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.25));
+    background-image: var(--url-walk);
+    background-size: 256px 64px; /* 1x4 horizontal strip */
+    background-position: 0 0;
+    mix-blend-mode: multiply; /* Natively converts #FFFFFF AI background to transparent */
     display: block;
     transition: transform .3s cubic-bezier(.175,.885,.32,1.275);
+    animation: mascotWalk 0.7s steps(4) infinite;
+}
+
+#mascot.mascot-panic {
+    background-image: var(--url-panic);
+}
+
+@keyframes mascotWalk {
+    100% { background-position: -256px 0; }
 }
 
 .stats-row {
@@ -173,6 +186,19 @@ body::before {
 .popin-left.show { transform: translateX(180px) rotate(10deg); }
 .popin-right { right: -160px; transform: translateX(0) rotate(20deg); }
 .popin-right.show { transform: translateX(-180px) rotate(-10deg); }
+
+.popin-party, .popin-panic {
+    background-size: 600px 150px;
+    background-position: 0 0;
+    mix-blend-mode: multiply;
+    animation: popinWalk 0.7s steps(4) infinite;
+}
+.popin-party { background-image: var(--url-party); }
+.popin-panic { background-image: var(--url-panic); }
+
+@keyframes popinWalk {
+    100% { background-position: -600px 0; }
+}
 
 /* ═══════════════════════════════════════════
    ANIMATIONS
