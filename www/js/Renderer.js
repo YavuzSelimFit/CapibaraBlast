@@ -193,10 +193,13 @@ export default class Renderer {
             useFallbackTexture = true;
         }
 
+        // Şeklin boyutuna göre dinamik köşe yuvarlatma (Maksimum 8px)
+        const sz = size + 0.5; 
+        const radius = Math.min(8, sz * 0.25); 
+
         ctx.save();
         ctx.beginPath();
-        const sz = size + 0.5; 
-        this._roundRectPath(ctx, x, y, sz, sz, 8);
+        this._roundRectPath(ctx, x, y, sz, sz, radius);
         ctx.clip();
 
         if (img && img.complete && img.naturalWidth > 0) {
@@ -216,7 +219,7 @@ export default class Renderer {
                 
                 ctx.fillStyle = 'white';
                 ctx.strokeStyle = '#333';
-                ctx.lineWidth = 3;
+                ctx.lineWidth = Math.max(1, size * 0.08); // Çizgi kalınlığı da dinamik olsun
                 ctx.font = `900 ${Math.round(size * 0.45)}px Nunito, sans-serif`;
                 ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
                 ctx.strokeText(val, size / 2, size / 2 + 1);
@@ -231,14 +234,14 @@ export default class Renderer {
 
         // Complete Failsafe
         ctx.fillStyle = this.colors[val] || this.colors.default;
-        ctx.beginPath(); this._roundRectPath(ctx, x, y, sz, sz, 5); ctx.fill();
+        ctx.beginPath(); this._roundRectPath(ctx, x, y, sz, sz, radius); ctx.fill();
         // Added stroke to distinguish blocks from pastel backgrounds
         ctx.lineWidth = 1;
         ctx.strokeStyle = 'rgba(0,0,0,0.15)';
         ctx.stroke();
 
         ctx.fillStyle = 'rgba(255,255,255,0.4)';
-        ctx.beginPath(); this._roundRectPath(ctx, x + 2, y + 2, sz - 4, size * 0.35, 3); ctx.fill();
+        ctx.beginPath(); this._roundRectPath(ctx, x + 2, y + 2, sz - 4, size * 0.35, radius * 0.5); ctx.fill();
         ctx.fillStyle = 'rgba(0,0,0,0.25)';
         ctx.font = `${Math.round(size * 0.45)}px Nunito, sans-serif`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';

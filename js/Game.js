@@ -93,7 +93,7 @@ class Game {
             this.trauma = Math.max(0, this.trauma - 0.03);
         }
 
-        this.input.update();
+        // this.input.update();  <-- BU SATIRI TAMAMEN SİL VEYA YORUMA AL
         this._tick(dt); // Keep _tick for game logic
         this.renderer.render(this.active);
 
