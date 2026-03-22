@@ -5,14 +5,18 @@ export default class Grid {
         this.cells = Array.from({ length: height }, () => new Array(width).fill(0));
     }
 
-    canPlace(shape, gx, gy) {
-        for (let r = 0; r < shape.length; r++)
-            for (let c = 0; c < shape[0].length; c++)
-                if (shape[r][c] > 0) {
-                    const ny = Math.floor(gy) + r, nx = Math.floor(gx) + c;
+    canPlace(piece, ox, oy) {
+        ox = Math.floor(ox);
+        oy = Math.floor(oy);
+        for (let r = 0; r < piece.length; r++) {
+            for (let c = 0; c < piece[0].length; c++) {
+                if (piece[r][c] > 0) {
+                    const ny = oy + r, nx = ox + c;
                     if (nx < 0 || nx >= this.width || ny >= this.height) return false;
                     if (ny >= 0 && this.cells[ny][nx] > 0) return false;
                 }
+            }
+        }
         return true;
     }
 

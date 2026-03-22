@@ -167,6 +167,15 @@ export default class Renderer {
         this._tickParticles(c);
     }
 
+    _roundRectPath(ctx, x, y, w, h, r) {
+        if (ctx.roundRect) { ctx.roundRect(x, y, w, h, r); return; }
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y); ctx.arcTo(x + w, y, x + w, y + r, r);
+        ctx.lineTo(x + w, y + h - r); ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+        ctx.lineTo(x + r, y + h); ctx.arcTo(x, y + h, x, y + h - r, r);
+        ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r);
+    }
+
     _drawBlock(ctx, val, x, y, size) {
         let img = this.imgAssets[val];
         let useFallbackTexture = false;
@@ -177,11 +186,9 @@ export default class Renderer {
         }
 
         ctx.save();
-        // Clip to rounded grid to kill white backgrounds from AI images
         ctx.beginPath();
-        // Drawing slightly larger than exact to connect blocks horizontally/vertically cleanly
         const sz = size + 0.5; 
-        ctx.roundRect(x, y, sz, sz, 8);
+        this._roundRectPath(ctx, x, y, sz, sz, 8);
         ctx.clip();
 
         if (img && img.complete && img.naturalWidth > 0) {
@@ -216,9 +223,9 @@ export default class Renderer {
 
         // Complete Failsafe
         ctx.fillStyle = this.colors[val] || this.colors.default;
-        ctx.beginPath(); ctx.roundRect(x, y, sz, sz, 5); ctx.fill();
+        ctx.beginPath(); this._roundRectPath(ctx, x, y, sz, sz, 5); ctx.fill();
         ctx.fillStyle = 'rgba(255,255,255,0.4)';
-        ctx.beginPath(); ctx.roundRect(x + 2, y + 2, sz - 4, size * 0.35, 3); ctx.fill();
+        ctx.beginPath(); this._roundRectPath(ctx, x + 2, y + 2, sz - 4, size * 0.35, 3); ctx.fill();
         ctx.fillStyle = 'rgba(0,0,0,0.25)';
         ctx.font = `${Math.round(size * 0.45)}px Nunito, sans-serif`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
