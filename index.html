@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="assets/mascot.png">
-    <link rel="stylesheet" href="css/style.css?v=14">
+    <link rel="stylesheet" href="css/style.css?v=28">
 </head>
 <body>
 
@@ -18,12 +18,14 @@
     <!-- ─── HEADER ─── -->
     <div class="game-header">
         <div class="top-row">
-            <div class="mascot-wrap">
+            <!-- Profil Avatar Alanı (Sol Üst) -->
+            <div class="mascot-frame">
                 <div id="mascot" title="Capy Mascot"></div>
             </div>
+            
             <div class="stats-row">
                 <div class="stat-card"><span class="lbl">Score</span><span class="val" id="score">0</span></div>
-                <div class="stat-card target"><span class="lbl">Target</span><span class="val" id="target">20</span></div>
+                <div class="stat-card target"><span class="lbl">LEVEL</span><span class="val" id="level">1</span></div>
             </div>
             <div class="next-wrap">
                 <span class="lbl">Next</span>
@@ -81,11 +83,11 @@
 </div>
 
 <!-- ─── SCRIPTS ─── -->
-<script type="module" src="js/Game.js?v=14"></script>
+<script type="module" src="js/Game.js?v=28"></script>
 <script>
     // Force PWA update
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=14').then(reg => {
+        navigator.serviceWorker.register('sw.js?v=28').then(reg => {
             reg.update(); // strongly force update check
         });
     }

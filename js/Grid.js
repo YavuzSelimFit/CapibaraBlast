@@ -1,8 +1,10 @@
 export default class Grid {
-    constructor(width = 8, height = 14) {
+    constructor(width = 8, height = 10) {
         this.width = width;
         this.height = height;
         this.cells = Array.from({ length: height }, () => new Array(width).fill(0));
+        // Density Compression: Progressively harder per-row thresholds
+        this.rowThresholds = [20, 30, 40, 50, 65, 80, 100, 120, 140, 160];
     }
 
     canPlace(piece, ox, oy) {
@@ -30,30 +32,20 @@ export default class Grid {
                 }
     }
 
-    findLinesStatus(target) {
-        let res = { clearRows: [], clearCols: [], bustRows: [], bustCols: [] };
+    findLinesStatus() {
+        let res = { clearRows: [], clearCols: [], clearedValues: [] }; // clearCols kept empty for compatibility
         
-        // Rows
+        // Rows only!
         for (let y = 0; y < this.height; y++) {
             let sum = 0, count = 0;
             for (let x = 0; x < this.width; x++) {
                 if (this.cells[y][x] > 0) { sum += this.cells[y][x]; count++; }
             }
-            if (count > 0) {
-                if (sum === target) res.clearRows.push(y);
-                else if (sum > target) res.bustRows.push(y); // Overload lock
-            }
-        }
-        
-        // Cols
-        for (let x = 0; x < this.width; x++) {
-            let colSum = 0, count = 0;
-            for (let y = 0; y < this.height; y++) {
-                if (this.cells[y][x] > 0) { colSum += this.cells[y][x]; count++; }
-            }
-            if (count > 0) {
-                if (colSum === target) res.clearCols.push(x);
-                else if (colSum > target) res.bustCols.push(x); // Overload lock
+            // Density Rule: Sum must meet or exceed THIS specific row's threshold!
+            const rowTarget = this.rowThresholds[y] || 160;
+            if (count > 0 && sum >= rowTarget) {
+                res.clearRows.push(y);
+                res.clearedValues.push(sum);
             }
         }
         
@@ -93,8 +85,8 @@ export default class Grid {
                 for (let x = 0; x < this.width; x++) {
                     const v = this.cells[y][x];
                     if (v <= 0) continue;
-                    // Check right and down neighbors (avoid double-merge)
-                    for (const [dy, dx] of [[1,0],[0,1]]) {
+                    // Check ONLY the down neighbor for vertical-only merge
+                    for (const [dy, dx] of [[1,0]]) {
                         const ty = y + dy, tx = x + dx;
                         if (ty >= 0 && ty < this.height && tx >= 0 && tx < this.width && this.cells[ty][tx] === v) {
                             // Merged value goes to the LOWER/RIGHT cell

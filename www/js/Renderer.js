@@ -11,7 +11,11 @@ export default class Renderer {
         this.imgAssets = {};
         this.particles = []; // Restored critical array initialization
         this.sweeps = [];
-        this.colors = { 1:'#a8e6cf', 2:'#87ceeb', 3:'#ffd3b6', 4:'#c3aed6', 6:'#f5b7b1', 8:'#f9e79f', default:'#d5dbdb' };
+        this.colors = { 
+            1:'#a8e6cf', 2:'#87ceeb', 4:'#ffd3b6', 8:'#c3aed6', 16:'#f5b7b1', 32:'#f9e79f', 
+            64:'#edbb99', 128:'#aed6f1', 256:'#a2d9ce', 512:'#f9ebae', 1024:'#d2b4de',
+            default:'#d5dbdb' 
+        };
 
         this._loadAssets();
         
@@ -175,59 +179,58 @@ export default class Renderer {
             c.restore();
         }
 
-        // Draw Row Sums (Dynamic Math Preview)
+        // --- Row Sums & Threshold Logic ---
         c.save();
-        c.textAlign = 'center';
+        c.textAlign = 'left';
         c.textBaseline = 'middle';
         
-        const target = window.gameInstance?.targetNumber || 20;
+        const target = window.gameInstance?.threshold || 60;
 
         for (let y = 0; y < this.grid.height; y++) {
             let rowSum = 0;
             let activeContribution = false;
             
-            // Sum of placed blocks
-            for (let x = 0; x < this.grid.width; x++) {
-                rowSum += this.grid.cells[y][x];
-            }
+            for (let x = 0; x < this.grid.width; x++) rowSum += this.grid.cells[y][x];
             
-            // Add ghost preview block matching this row
             if (active && ghostY !== -1) {
                 const relativeY = y - ghostY;
                 if (relativeY >= 0 && relativeY < active.grid.length) {
                     for (let cl = 0; cl < active.grid[0].length; cl++) {
                         const v = active.grid[relativeY][cl];
-                        if (v > 0) {
-                            rowSum += v;
-                            activeContribution = true; // highlight row if active piece will modify it
-                        }
+                        if (v > 0) { rowSum += v; activeContribution = true; }
                     }
                 }
             }
 
-            if (rowSum > 0) {
-                const cx = gridW + (this.cellSize * 0.75); // middle of the extra 1.5 space
+            if (rowSum > 0 || activeContribution) {
+                const cx = gridW + 6; // Hug the grid to fit on small screens
                 const cy = y * this.cellSize + this.cellSize / 2;
                 
-                // Styling
+                const rowTarget = this.grid.rowThresholds[y] || 160;
+                const ratio = rowSum / rowTarget;
+                const textStr = `${rowSum} / ${rowTarget}`;
+                
                 c.shadowBlur = 4;
-                c.shadowOffsetY = 2;
                 c.shadowColor = 'rgba(0,0,0,0.3)';
 
-                if (rowSum === target) {
-                    c.fillStyle = '#27ae60'; // Green for perfect
-                    c.font = `900 ${Math.round(this.cellSize * 0.5)}px Nunito, sans-serif`;
-                    // Active piece will win this row!
-                    if (activeContribution) c.shadowColor = 'rgba(39, 174, 96, 0.6)'; c.shadowBlur = 10;
-                } else if (rowSum > target) {
-                    c.fillStyle = '#e74c3c'; // Red for overload bust
-                    c.font = `900 ${Math.round(this.cellSize * 0.45)}px Nunito, sans-serif`;
+                if (ratio >= 1.0) {
+                    // FULL/CLEARED!
+                    c.fillStyle = '#2ecc71'; // Vibrant Green
+                    const pulse = 1 + Math.sin(Date.now() / 150) * 0.1;
+                    c.font = `900 ${Math.round(this.cellSize * 0.4 * pulse)}px Nunito, sans-serif`;
+                    c.shadowColor = 'rgba(46, 204, 113, 0.6)';
+                    c.shadowBlur = 12;
+                } else if (ratio >= 0.7 || activeContribution) {
+                    // DENSE / GHOST BOOSTING -> Bold Orange
+                    c.fillStyle = '#e67e22'; 
+                    c.font = `800 ${Math.round(this.cellSize * 0.35)}px Nunito, sans-serif`;
                 } else {
-                    c.fillStyle = activeContribution ? '#f39c12' : 'rgba(0,0,0,0.5)'; // Orange if active piece touches it, else gray
-                    c.font = `800 ${Math.round(this.cellSize * 0.45)}px Nunito, sans-serif`;
+                    // LIGHT
+                    c.fillStyle = 'rgba(0,0,0,0.4)';
+                    c.font = `700 ${Math.round(this.cellSize * 0.3)}px Nunito, sans-serif`;
                 }
                 
-                c.fillText(rowSum.toString(), cx, cy);
+                c.fillText(textStr, cx, cy);
             }
         }
         c.restore();

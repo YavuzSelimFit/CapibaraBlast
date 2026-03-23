@@ -1,18 +1,11 @@
 export default class BlockFactory {
     constructor() {
+        this.level = 1;
+        // Weighting: 3x 1x1 blocks, 1x 1x2 block
         this.shapes = [
-            [[1, 1], [1, 1]], [[1, 1, 1, 1]], [[1], [1], [1], [1]],
-            [[1, 1, 1], [0, 1, 0]], [[1, 1], [0, 1], [0, 1]], [[1]], [[1, 1]], [[1], [1]]
+            [[1]], [[1]], [[1]], 
+            [[1], [1]]
         ];
-        
-        this.largeShapes = [
-            [[1, 1, 1], [1, 1, 1]], // 2x3 block (much more manageable)
-            [[1, 1, 1, 1]], // 4-long horizontal
-            [[1], [1], [1], [1]] // 4-long vertical
-        ];
-        
-        this.difficulty = 'relaxed';
-        this.turnCounter = 0;
     }
     
     setDifficulty(level) {
@@ -20,18 +13,7 @@ export default class BlockFactory {
     }
     
     createRandom(gridInstance) {
-        let pool = this.shapes;
-        
-        this.turnCounter++;
-        if (this.difficulty === 'crisis' || (this.turnCounter > 10 && this.turnCounter % 5 === 0)) {
-            pool = pool.concat(this.largeShapes);
-            this.difficulty = 'crisis';
-        } else if (this.difficulty === 'breather') {
-            pool = [[[1]], [[1, 1]], [[1], [1]]]; 
-            if (Math.random() < 0.3) this.difficulty = 'relaxed';
-        }
-        
-        let shape = pool[Math.floor(Math.random() * pool.length)];
+        let shape = this.shapes[Math.floor(Math.random() * this.shapes.length)];
         let blockGrid = shape.map(row => 
             row.map(cell => cell === 1 ? this.getRandomNumber() : 0)
         );
@@ -39,10 +21,20 @@ export default class BlockFactory {
     }
     
     getRandomNumber() {
+        // Dynamic evolution based on level.
+        // Level 1: [1,2,4,8]
+        // Level 5: [8,16,32,64]
+        // Level 10: [64,128,256,512]
+        
+        const basePow = Math.floor((this.level - 1) / 2); // 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6...
         const roll = Math.random();
-        if (roll < 0.5) return 1;
-        if (roll < 0.8) return 2;
-        return 3;
+        let add = 0;
+        if (roll < 0.4) add = 0;
+        else if (roll < 0.75) add = 1;
+        else if (roll < 0.95) add = 2;
+        else add = 3;
+
+        return Math.pow(2, basePow + add);
     }
     
     generateTurnBlocks(gridInstance) {

@@ -15,7 +15,9 @@ class Game {
 
         this.score = 0;
         this.highScores = JSON.parse(localStorage.getItem('capy_scores') || '[]');
-        this.targetNumber = 20; // CONSTANT TARGET NUMBER DO NOT INCREASE
+        this.level = 1;
+        this.level = 1;
+        this.linesClearedTotal = 0;
         
         this.trauma = 0; // Screen shake decay variable
 
@@ -151,7 +153,7 @@ class Game {
         if (navigator.vibrate) navigator.vibrate(50);
     }
     
-    _lock() {
+    async _lock() {
         if (!this.active) return;
         const gx = this.active.x, gy = Math.floor(this.active.y);
         this._haptic('MEDIUM');
@@ -167,78 +169,127 @@ class Game {
         if (gy < 0) { this.isGameOver = true; this._showGameOver(); return; }
 
         this.grid.place(this.active.grid, gx, gy);
-        const maxMerge = this.grid.mergeAdjacent();
-        if (maxMerge > 0) {
-            this._haptic('MEDIUM');
-            this.audio.playMerge(maxMerge);
-        }
-        if (maxMerge >= 4) this._triggerPopin(maxMerge);
-        this.grid.applyGravity(); // Collapse isolated towers after merge gaps
-        this._checkClears();
-        this._saveState(); // Persistent save on every block lock
-
         this.active = null;
-        this._spawn();
-    }
 
-    _checkClears() {
-        const status = this.grid.findLinesStatus(this.targetNumber);
-        const clearTotal = status.clearRows.length + status.clearCols.length;
-        const bustTotal = status.bustRows.length + status.bustCols.length;
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
+        
+        // RECURSIVE PHYSICS LOOP: Merge -> Gravity -> Merge...
+        let stable = false;
+        let loopCount = 0;
+        while (!stable && loopCount < 5) {
+            stable = true;
+            loopCount++;
 
-        if (clearTotal === 0 && bustTotal === 0) return;
+            // Phase A: Merge
+            const maxMerge = this.grid.mergeAdjacent();
+            if (maxMerge > 0) {
+                stable = false;
+                this._haptic('MEDIUM');
+                this.audio.playMerge(maxMerge);
+                if (maxMerge >= 4) this._triggerPopin(maxMerge);
+                await sleep(80); // Visual pause for merging
+            }
 
-        const s = this.renderer.cellSize;
-
-        if (bustTotal > 0) {
-            // Shake screen heavily for busts (overloads)
-            this._shake(0.8);
-            if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
-            const m = document.getElementById('mascot');
-            if (m) { m.classList.add('mascot-panic'); setTimeout(()=>m.classList.remove('mascot-panic'), 1000); }
-        }
-
-        if (clearTotal > 0) {
-            const lines = { rows: status.clearRows, cols: status.clearCols };
-
-            // Explosion particles for every block in cleared lines
-            lines.rows.forEach(y => {
-                this.renderer.sweepRow(y);
-                for (let x = 0; x < this.grid.width; x++)
-                    if (this.grid.cells[y][x] > 0)
-                        this.renderer.boom(x * s + s / 2, y * s + s / 2, this.renderer.getColor(this.grid.cells[y][x]), 6);
-            });
-            lines.cols.forEach(x => {
-                this.renderer.sweepCol(x);
-                for (let y = 0; y < this.grid.height; y++)
-                    if (this.grid.cells[y][x] > 0)
-                        this.renderer.boom(x * s + s / 2, y * s + s / 2, this.renderer.getColor(this.grid.cells[y][x]), 6);
-            });
-
-            this.grid.clearLines(lines);
-
-            const cross = lines.rows.length > 0 && lines.cols.length > 0;
-            if (cross) { this.score += 100; this._shake(0.5); if (navigator.vibrate) navigator.vibrate([80, 40, 80]); }
-
-            this.score += 50 * clearTotal;
-            
-            if (clearTotal >= 2 || cross) {
-                this.score += 150; // Ekstra combo puanı
-                this.grid.triggerAoE(lines);
-                this._mathBlast();
-                this.renderer.spawnTextPopup('delicious');
-                if (navigator.vibrate) navigator.vibrate(180);
-            } else {
-                this.renderer.spawnTextPopup('perfect');
-                if (navigator.vibrate) navigator.vibrate(50);
+            // Phase B: Gravity
+            const moved = this.grid.applyGravity();
+            if (moved) {
+                stable = false;
+                await sleep(80); // Visual pause for falling
             }
         }
 
-        // SPEED STAYS CONSTANT
+        this._checkClears();
+        this._saveState(); 
+
+        this._spawn();
+    }
+
+    _setMood(mood) {
+        const m = document.getElementById('mascot');
+        if (!m) return;
+        m.style.animation = 'none';
+        void m.offsetWidth; // trigger reflow
+        m.style.animation = 'capyBreathe 3s ease-in-out infinite';
         
-        document.getElementById('target').textContent = this.targetNumber; 
+        if (mood === 'panic') m.style.backgroundImage = 'url("assets/capy_panic.png")';
+        else if (mood === 'party') m.style.backgroundImage = 'url("assets/capy_party.png")';
+        else m.style.backgroundImage = 'url("assets/capy_happy.png")';
+    }
+
+    _checkClears() {
+        const status = this.grid.findLinesStatus();
+        const clearTotal = status.clearRows.length;
+
+        if (clearTotal === 0) {
+            // Check if mascot should panic based on HEIGHT
+            let maxH = 0;
+            for(let r=0; r<this.grid.height; r++) if(!this.grid.cells[r].every(c=>c===0)) { maxH = this.grid.height - r; break; }
+            if (maxH > this.grid.height * 0.7) this._setMood('panic');
+            else this._setMood('happy');
+            return;
+        }
+
+        const s = this.renderer.cellSize;
+        const lines = { rows: status.clearRows, cols: status.clearCols };
+
+        // Explosion particles for every block in cleared lines
+        lines.rows.forEach(y => {
+            this.renderer.sweepRow(y);
+            for (let x = 0; x < this.grid.width; x++)
+                if (this.grid.cells[y][x] > 0)
+                    this.renderer.boom(x * s + s / 2, y * s + s / 2, this.renderer.getColor(this.grid.cells[y][x]), 6);
+        });
+        lines.cols.forEach(x => {
+            this.renderer.sweepCol(x);
+            for (let y = 0; y < this.grid.height; y++)
+                if (this.grid.cells[y][x] > 0)
+                    this.renderer.boom(x * s + s / 2, y * s + s / 2, this.renderer.getColor(this.grid.cells[y][x]), 6);
+        });
+
+        this.grid.clearLines(lines);
+
+        const cross = lines.rows.length > 0 && lines.cols.length > 0;
+        
+        // Massive Exponential Scoring
+        let totalSum = status.clearedValues.reduce((a, b) => a + b, 0);
+        this.score += totalSum * 10;
+        if (clearTotal > 1) this.score += 500;
+        
+        // Difficulty curve => speed increases with score
+        this.speed = this.baseSpeed + (this.score * 0.00000005);
+
+        if (clearTotal >= 2 || totalSum >= 100) {
+            this.renderer.spawnTextPopup('delicious');
+            if (navigator.vibrate) navigator.vibrate(180);
+            this._setMood('party');
+        } else {
+            this.renderer.spawnTextPopup(status.clearedValues.some(v => v >= 128) ? 'dense' : 'perfect');
+            if (navigator.vibrate) navigator.vibrate(50);
+            
+            // Re-check panic state after a small clear
+            let maxH = 0;
+            for(let r=0; r<this.grid.height; r++) if(!this.grid.cells[r].every(c=>c===0)) { maxH = this.grid.height - r; break; }
+            if (maxH > this.grid.height * 0.7) this._setMood('panic');
+            else this._setMood('happy');
+        }
+
+        // Progression Logic
+        this.linesClearedTotal += clearTotal;
+        if (this.linesClearedTotal >= this.level * 10) {
+            this.level++;
+            this.factory.level = this.level;
+            document.getElementById('level').innerText = this.level;
+            this._shake(0.5);
+            // Visual Level Up? (Maybe just update UI for now)
+        }
+        
+        this._updateHUD();
+    }
+
+    _updateHUD() {
+        document.getElementById('level').innerText = this.level; 
         document.getElementById('score').textContent = this.score;
-        this._progress(clearTotal);
+        this._progress(this.linesClearedTotal % (this.level * 10), this.level * 10);
     }
 
     _mathBlast() {
@@ -252,11 +303,11 @@ class Game {
         if (el) { el.classList.remove('shake-active'); void el.offsetWidth; el.classList.add('shake-active'); }
     }
 
-    _progress(n) {
+    _progress(current, max) {
         const bar = document.getElementById('progress');
         if (!bar) return;
-        let w = parseFloat(bar.style.width || '0') + n * 5;
-        bar.style.width = Math.min(w, 100) + '%';
+        let p = (current / max) * 100;
+        bar.style.width = p + '%';
     }
 
     _triggerPopin(val) {
@@ -377,23 +428,23 @@ class Game {
     }
 
     _reset() {
-        const m = document.getElementById('mascot');
-        if (m) { m.src = 'assets/mascot.png'; m.classList.remove('mascot-panic'); }
+        this._setMood('happy');
         this.grid = new Grid(8, 10);
         this.renderer.grid = this.grid;
         this.renderer.resize();
         this.score = 0;
-        this.targetNumber = 20;
+        this.level = 1;
+        this.linesClearedTotal = 0;
+        this.factory.level = 1;
         this.speed = this.baseSpeed;
         this.isGameOver = false;
-        document.getElementById('score').textContent = '0';
-        document.getElementById('target').textContent = '20';
+        this._updateHUD();
         this.trauma = 0;
         this.next = this._newPiece();
         this._spawn();
         this.lastTime = performance.now();
         this._loop(this.lastTime);
-        this._saveState(); // Reset saved state too
+        this._saveState();
     }
 
     _haptic(style) {
@@ -406,25 +457,26 @@ class Game {
         const state = {
             cells: this.grid.cells,
             score: this.score,
-            targetNumber: this.targetNumber,
+            level: this.level,
+            linesClearedTotal: this.linesClearedTotal,
             speed: this.speed
         };
-        await this.Pref.set({ key: 'capy_state', value: JSON.stringify(state) });
+        await this.Pref.set({ key: 'capy_state_v2', value: JSON.stringify(state) });
     }
 
     async _loadState() {
         if (!this.Pref) return;
-        const { value } = await this.Pref.get({ key: 'capy_state' });
+        const { value } = await this.Pref.get({ key: 'capy_state_v2' });
         if (value) {
             try {
                 const state = JSON.parse(value);
                 this.grid.cells = state.cells;
                 this.score = state.score;
-                this.targetNumber = state.targetNumber;
+                this.level = state.level || 1;
+                this.linesClearedTotal = state.linesClearedTotal || 0;
                 this.speed = state.speed;
                 this.renderer.resize();
-                document.getElementById('score').textContent = this.score;
-                document.getElementById('target').textContent = this.targetNumber;
+                this._updateHUD();
             } catch (e) {
                 console.error('Failed to load save state', e);
             }

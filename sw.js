@@ -1,4 +1,4 @@
-const CACHE_NAME = 'capy-v14';
+const CACHE_NAME = 'capy-v28';
 const ASSETS = [
     './',
     './index.html',
