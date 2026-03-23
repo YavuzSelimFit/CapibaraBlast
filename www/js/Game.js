@@ -192,11 +192,13 @@ class Game {
 
         // Explosion particles for every block in cleared lines
         lines.rows.forEach(y => {
+            this.renderer.sweepRow(y);
             for (let x = 0; x < this.grid.width; x++)
                 if (this.grid.cells[y][x] > 0)
                     this.renderer.boom(x * s + s / 2, y * s + s / 2, this.renderer.getColor(this.grid.cells[y][x]), 6);
         });
         lines.cols.forEach(x => {
+            this.renderer.sweepCol(x);
             for (let y = 0; y < this.grid.height; y++)
                 if (this.grid.cells[y][x] > 0)
                     this.renderer.boom(x * s + s / 2, y * s + s / 2, this.renderer.getColor(this.grid.cells[y][x]), 6);
@@ -211,8 +213,10 @@ class Game {
             this.score += 200; // Ekstra puan
             this.grid.triggerAoE(lines);
             this._mathBlast();
+            this.renderer.spawnTextPopup('delicious');
             if (navigator.vibrate) navigator.vibrate(180);
         } else if (sum === 16) {
+            if (total >= 2) this.renderer.spawnTextPopup('perfect');
             if (navigator.vibrate) navigator.vibrate(50);
         } else {
             if (navigator.vibrate) navigator.vibrate(25);

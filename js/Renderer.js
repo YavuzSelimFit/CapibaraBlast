@@ -10,6 +10,7 @@ export default class Renderer {
         this.cellSize = 0;
         this.imgAssets = {};
         this.particles = []; // Restored critical array initialization
+        this.sweeps = [];
         this.colors = { 1:'#a8e6cf', 2:'#87ceeb', 3:'#ffd3b6', 4:'#c3aed6', 6:'#f5b7b1', 8:'#f9e79f', default:'#d5dbdb' };
 
         this._loadAssets();
@@ -172,6 +173,7 @@ export default class Renderer {
             c.restore();
         }
 
+        this._tickSweeps(c);
         this._tickParticles(c);
     }
 
@@ -286,6 +288,40 @@ export default class Renderer {
             this.particles.push({ x, y, vx: (Math.random() - .5) * 10, vy: (Math.random() - .5) * 10 - 2, life: 1, color, size: Math.random() * 4 + 2 });
     }
 
+    sweepRow(y) {
+        this.sweeps.push({ type: 'row', index: y, life: 1 });
+    }
+    
+    sweepCol(x) {
+        this.sweeps.push({ type: 'col', index: x, life: 1 });
+    }
+
+    _tickSweeps(c) {
+        if (this.sweeps.length === 0) return;
+        c.save();
+        for (let i = this.sweeps.length - 1; i >= 0; i--) {
+            const s = this.sweeps[i];
+            s.life -= 0.05;
+            if (s.life <= 0) { this.sweeps.splice(i, 1); continue; }
+            
+            c.globalAlpha = s.life;
+            c.fillStyle = 'white';
+            c.shadowColor = 'white';
+            c.shadowBlur = 15;
+            
+            const thickness = 4 + (1 - s.life) * 25; // expands as it fades
+            
+            if (s.type === 'row') {
+                const cy = s.index * this.cellSize + this.cellSize / 2;
+                c.fillRect(0, cy - thickness/2, this.cellSize * this.grid.width, thickness);
+            } else {
+                const cx = s.index * this.cellSize + this.cellSize / 2;
+                c.fillRect(cx - thickness/2, 0, thickness, this.cellSize * this.grid.height);
+            }
+        }
+        c.restore();
+    }
+
     _tickParticles(c) {
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
@@ -296,6 +332,19 @@ export default class Renderer {
             c.beginPath(); c.arc(p.x, p.y, p.size, 0, Math.PI * 2); c.fill();
         }
         c.globalAlpha = 1;
+    }
+
+    spawnTextPopup(type) {
+        const area = document.querySelector('.board-area');
+        if (!area) return;
+        const img = document.createElement('img');
+        img.src = `assets/${type}.png`;
+        img.className = 'text-popup';
+        // Rastgele ufak rotasyon ekleyelim daha tatlı olsun
+        const rot = (Math.random() - 0.5) * 20;
+        img.style.setProperty('--target-rot', rot + 'deg');
+        area.appendChild(img);
+        setTimeout(() => img.remove(), 1500);
     }
 
     getColor(v) { return this.colors[v] || this.colors.default; }
