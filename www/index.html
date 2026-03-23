@@ -9,7 +9,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="assets/mascot.png">
-    <link rel="stylesheet" href="css/style.css?v=8">
+    <link rel="stylesheet" href="css/style.css?v=14">
 </head>
 <body>
 
@@ -23,7 +23,7 @@
             </div>
             <div class="stats-row">
                 <div class="stat-card"><span class="lbl">Score</span><span class="val" id="score">0</span></div>
-                <div class="stat-card target"><span class="lbl">Target</span><span class="val" id="target">10</span></div>
+                <div class="stat-card target"><span class="lbl">Target</span><span class="val" id="target">20</span></div>
             </div>
             <div class="next-wrap">
                 <span class="lbl">Next</span>
@@ -31,11 +31,15 @@
             </div>
         </div>
         <div class="progress-track"><div class="progress-fill" id="progress"></div></div>
-        <div class="powerup-row">
-            <button class="pu-btn" id="pu-hammer" title="Hammer"><img src="assets/hammer.png" alt="H"></button>
-            <button class="pu-btn" id="pu-shuffle" title="Shuffle"><img src="assets/shuffle.png" alt="S"></button>
-            <button class="pu-btn" id="pu-plus" title="+1">+1</button>
-        </div>
+    </div>
+    
+    <!-- DEVASA DIŞARI TAŞAN GÜÇLER -->
+    <div class="powerups">
+        <button class="power-btn" id="pu-hammer" title="Hammer"><img src="assets/hammer.png" alt="H"></button>
+        <button class="power-btn" id="pu-shuffle" title="Shuffle"><img src="assets/shuffle.png" alt="S"></button>
+        <button class="power-btn" id="pu-plus" title="+1">
+            <span style="font-size: 24px; font-weight: 900; color: #fff; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5))">+1</span>
+        </button>
     </div>
 
     <!-- ─── BOARD ─── -->
@@ -77,11 +81,11 @@
 </div>
 
 <!-- ─── SCRIPTS ─── -->
-<script type="module" src="js/Game.js?v=9"></script>
+<script type="module" src="js/Game.js?v=14"></script>
 <script>
     // Force PWA update
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=8').then(reg => {
+        navigator.serviceWorker.register('sw.js?v=14').then(reg => {
             reg.update(); // strongly force update check
         });
     }

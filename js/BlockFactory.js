@@ -6,9 +6,9 @@ export default class BlockFactory {
         ];
         
         this.largeShapes = [
-            [[1, 1, 1], [1, 1, 1], [1, 1, 1]],
-            [[1, 1, 1, 1, 1]],
-            [[1], [1], [1], [1], [1]]
+            [[1, 1, 1], [1, 1, 1]], // 2x3 block (much more manageable)
+            [[1, 1, 1, 1]], // 4-long horizontal
+            [[1], [1], [1], [1]] // 4-long vertical
         ];
         
         this.difficulty = 'relaxed';

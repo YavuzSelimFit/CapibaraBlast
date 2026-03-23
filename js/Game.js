@@ -15,7 +15,7 @@ class Game {
 
         this.score = 0;
         this.highScores = JSON.parse(localStorage.getItem('capy_scores') || '[]');
-        this.targetNumber = 10;
+        this.targetNumber = 20; // CONSTANT TARGET NUMBER DO NOT INCREASE
         
         this.trauma = 0; // Screen shake decay variable
 
@@ -30,7 +30,7 @@ class Game {
         this.isGameOver = false;
         this.isPaused = true; 
 
-        // Başlangıç hızını %50 yavaşlattık
+        // CONSTANT SPEED DO NOT INCREASE
         this.baseSpeed = 0.0008; 
         this.speed = this.baseSpeed;
         this.lastTime = 0;
@@ -182,51 +182,63 @@ class Game {
     }
 
     _checkClears() {
-        const lines = this.grid.findCompleteLines();
-        const total = lines.rows.length + lines.cols.length;
-        if (total === 0) return;
+        const status = this.grid.findLinesStatus(this.targetNumber);
+        const clearTotal = status.clearRows.length + status.clearCols.length;
+        const bustTotal = status.bustRows.length + status.bustCols.length;
 
-        const sum = this.grid.calculateLineSum(lines);
-        const cross = lines.rows.length > 0 && lines.cols.length > 0;
+        if (clearTotal === 0 && bustTotal === 0) return;
+
         const s = this.renderer.cellSize;
 
-        // Explosion particles for every block in cleared lines
-        lines.rows.forEach(y => {
-            this.renderer.sweepRow(y);
-            for (let x = 0; x < this.grid.width; x++)
-                if (this.grid.cells[y][x] > 0)
-                    this.renderer.boom(x * s + s / 2, y * s + s / 2, this.renderer.getColor(this.grid.cells[y][x]), 6);
-        });
-        lines.cols.forEach(x => {
-            this.renderer.sweepCol(x);
-            for (let y = 0; y < this.grid.height; y++)
-                if (this.grid.cells[y][x] > 0)
-                    this.renderer.boom(x * s + s / 2, y * s + s / 2, this.renderer.getColor(this.grid.cells[y][x]), 6);
-        });
-
-        this.grid.clearLines(lines);
-
-        if (cross) { this.score += 30; this._shake(); if (navigator.vibrate) navigator.vibrate([80, 40, 80]); }
-
-        this.score += 50 * total;
-        if (sum > 32) {
-            this.score += 200; // Ekstra puan
-            this.grid.triggerAoE(lines);
-            this._mathBlast();
-            this.renderer.spawnTextPopup('delicious');
-            if (navigator.vibrate) navigator.vibrate(180);
-        } else if (sum === 16) {
-            if (total >= 2) this.renderer.spawnTextPopup('perfect');
-            if (navigator.vibrate) navigator.vibrate(50);
-        } else {
-            if (navigator.vibrate) navigator.vibrate(25);
+        if (bustTotal > 0) {
+            // Shake screen heavily for busts (overloads)
+            this._shake(0.8);
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
+            const m = document.getElementById('mascot');
+            if (m) { m.classList.add('mascot-panic'); setTimeout(()=>m.classList.remove('mascot-panic'), 1000); }
         }
-        
-        this.speed = Math.min(this.speed + 0.0001, 0.004);
-        document.getElementById('target').textContent = '16'; 
 
+        if (clearTotal > 0) {
+            const lines = { rows: status.clearRows, cols: status.clearCols };
+
+            // Explosion particles for every block in cleared lines
+            lines.rows.forEach(y => {
+                this.renderer.sweepRow(y);
+                for (let x = 0; x < this.grid.width; x++)
+                    if (this.grid.cells[y][x] > 0)
+                        this.renderer.boom(x * s + s / 2, y * s + s / 2, this.renderer.getColor(this.grid.cells[y][x]), 6);
+            });
+            lines.cols.forEach(x => {
+                this.renderer.sweepCol(x);
+                for (let y = 0; y < this.grid.height; y++)
+                    if (this.grid.cells[y][x] > 0)
+                        this.renderer.boom(x * s + s / 2, y * s + s / 2, this.renderer.getColor(this.grid.cells[y][x]), 6);
+            });
+
+            this.grid.clearLines(lines);
+
+            const cross = lines.rows.length > 0 && lines.cols.length > 0;
+            if (cross) { this.score += 100; this._shake(0.5); if (navigator.vibrate) navigator.vibrate([80, 40, 80]); }
+
+            this.score += 50 * clearTotal;
+            
+            if (clearTotal >= 2 || cross) {
+                this.score += 150; // Ekstra combo puanı
+                this.grid.triggerAoE(lines);
+                this._mathBlast();
+                this.renderer.spawnTextPopup('delicious');
+                if (navigator.vibrate) navigator.vibrate(180);
+            } else {
+                this.renderer.spawnTextPopup('perfect');
+                if (navigator.vibrate) navigator.vibrate(50);
+            }
+        }
+
+        // SPEED STAYS CONSTANT
+        
+        document.getElementById('target').textContent = this.targetNumber; 
         document.getElementById('score').textContent = this.score;
-        this._progress(total);
+        this._progress(clearTotal);
     }
 
     _mathBlast() {
@@ -308,7 +320,7 @@ class Game {
             else if (this.powerUpMode === 'plus') { this.grid.cells[gy][gx]++; this.renderer.boom(gx * this.renderer.cellSize + 18, gy * this.renderer.cellSize + 18, '#ff0', 6); }
 
             this.powerUpMode = null;
-            document.querySelectorAll('.pu-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.power-btn').forEach(b => b.classList.remove('active-power'));
             this._checkClears();
         });
 
@@ -358,10 +370,10 @@ class Game {
     }
 
     _togglePU(name) {
-        if (this.powerUpMode === name) { this.powerUpMode = null; document.querySelectorAll('.pu-btn').forEach(b => b.classList.remove('active')); return; }
+        if (this.powerUpMode === name) { this.powerUpMode = null; document.querySelectorAll('.power-btn').forEach(b => b.classList.remove('active-power')); return; }
         this.powerUpMode = name;
-        document.querySelectorAll('.pu-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById(name === 'hammer' ? 'pu-hammer' : 'pu-plus')?.classList.add('active');
+        document.querySelectorAll('.power-btn').forEach(b => b.classList.remove('active-power'));
+        document.getElementById(name === 'hammer' ? 'pu-hammer' : (name === 'plus' ? 'pu-plus' : 'pu-shuffle'))?.classList.add('active-power');
     }
 
     _reset() {
@@ -371,11 +383,11 @@ class Game {
         this.renderer.grid = this.grid;
         this.renderer.resize();
         this.score = 0;
-        this.targetNumber = 10;
+        this.targetNumber = 20;
         this.speed = this.baseSpeed;
         this.isGameOver = false;
         document.getElementById('score').textContent = '0';
-        document.getElementById('target').textContent = '10';
+        document.getElementById('target').textContent = '20';
         this.trauma = 0;
         this.next = this._newPiece();
         this._spawn();

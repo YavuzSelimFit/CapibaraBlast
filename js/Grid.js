@@ -30,18 +30,34 @@ export default class Grid {
                 }
     }
 
-    findCompleteLines() {
-        const lines = { rows: [], cols: [] };
+    findLinesStatus(target) {
+        let res = { clearRows: [], clearCols: [], bustRows: [], bustCols: [] };
+        
+        // Rows
         for (let y = 0; y < this.height; y++) {
-            const rowSum = this.cells[y].reduce((a, b) => a + b, 0);
-            if (rowSum === 16 || rowSum > 32) lines.rows.push(y);
+            let sum = 0, count = 0;
+            for (let x = 0; x < this.width; x++) {
+                if (this.cells[y][x] > 0) { sum += this.cells[y][x]; count++; }
+            }
+            if (count > 0) {
+                if (sum === target) res.clearRows.push(y);
+                else if (sum > target) res.bustRows.push(y); // Overload lock
+            }
         }
+        
+        // Cols
         for (let x = 0; x < this.width; x++) {
-            let colSum = 0;
-            for (let y = 0; y < this.height; y++) colSum += this.cells[y][x];
-            if (colSum === 16 || colSum > 32) lines.cols.push(x);
+            let colSum = 0, count = 0;
+            for (let y = 0; y < this.height; y++) {
+                if (this.cells[y][x] > 0) { colSum += this.cells[y][x]; count++; }
+            }
+            if (count > 0) {
+                if (colSum === target) res.clearCols.push(x);
+                else if (colSum > target) res.bustCols.push(x); // Overload lock
+            }
         }
-        return lines;
+        
+        return res;
     }
 
     calculateLineSum(lines) {

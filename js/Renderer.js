@@ -91,8 +91,8 @@ export default class Renderer {
         const ah = area.clientHeight - pad * 2;
         if (aw <= 0 || ah <= 0) return;
 
-        this.cellSize = Math.floor(Math.min(aw / this.grid.width, ah / this.grid.height));
-        const w = this.cellSize * this.grid.width;
+        this.cellSize = Math.floor(Math.min(aw / (this.grid.width + 1.5), ah / this.grid.height));
+        const w = this.cellSize * (this.grid.width + 1.5);
         const h = this.cellSize * this.grid.height;
         const dpr = window.devicePixelRatio || 1;
 
@@ -117,15 +117,16 @@ export default class Renderer {
 
     render(active) {
         const c = this.ctx;
-        const W = this.cellSize * this.grid.width;
+        const gridW = this.cellSize * this.grid.width;
         const H = this.cellSize * this.grid.height;
+        const W = this.cellSize * (this.grid.width + 1.5);
         c.clearRect(0, 0, W, H);
 
         // Grid background - subtle dotted intersections only
         c.strokeStyle = 'rgba(0,0,0,0.06)';
         c.lineWidth = 0.5;
         for (let y = 0; y <= this.grid.height; y++) {
-            c.beginPath(); c.moveTo(0, y * this.cellSize); c.lineTo(W, y * this.cellSize); c.stroke();
+            c.beginPath(); c.moveTo(0, y * this.cellSize); c.lineTo(gridW, y * this.cellSize); c.stroke();
         }
         for (let x = 0; x <= this.grid.width; x++) {
             c.beginPath(); c.moveTo(x * this.cellSize, 0); c.lineTo(x * this.cellSize, H); c.stroke();
@@ -139,8 +140,9 @@ export default class Renderer {
             }
 
         // Ghost preview (shadow of where piece will land)
+        let ghostY = -1;
         if (active) {
-            let ghostY = Math.floor(active.y < 0 ? 0 : active.y);
+            ghostY = Math.floor(active.y < 0 ? 0 : active.y);
             while (this.grid.canPlace(active.grid, active.x, ghostY + 1)) ghostY++;
             c.globalAlpha = 0.18;
             for (let r = 0; r < active.grid.length; r++)
@@ -172,6 +174,63 @@ export default class Renderer {
                 }
             c.restore();
         }
+
+        // Draw Row Sums (Dynamic Math Preview)
+        c.save();
+        c.textAlign = 'center';
+        c.textBaseline = 'middle';
+        
+        const target = window.gameInstance?.targetNumber || 20;
+
+        for (let y = 0; y < this.grid.height; y++) {
+            let rowSum = 0;
+            let activeContribution = false;
+            
+            // Sum of placed blocks
+            for (let x = 0; x < this.grid.width; x++) {
+                rowSum += this.grid.cells[y][x];
+            }
+            
+            // Add ghost preview block matching this row
+            if (active && ghostY !== -1) {
+                const relativeY = y - ghostY;
+                if (relativeY >= 0 && relativeY < active.grid.length) {
+                    for (let cl = 0; cl < active.grid[0].length; cl++) {
+                        const v = active.grid[relativeY][cl];
+                        if (v > 0) {
+                            rowSum += v;
+                            activeContribution = true; // highlight row if active piece will modify it
+                        }
+                    }
+                }
+            }
+
+            if (rowSum > 0) {
+                const cx = gridW + (this.cellSize * 0.75); // middle of the extra 1.5 space
+                const cy = y * this.cellSize + this.cellSize / 2;
+                
+                // Styling
+                c.shadowBlur = 4;
+                c.shadowOffsetY = 2;
+                c.shadowColor = 'rgba(0,0,0,0.3)';
+
+                if (rowSum === target) {
+                    c.fillStyle = '#27ae60'; // Green for perfect
+                    c.font = `900 ${Math.round(this.cellSize * 0.5)}px Nunito, sans-serif`;
+                    // Active piece will win this row!
+                    if (activeContribution) c.shadowColor = 'rgba(39, 174, 96, 0.6)'; c.shadowBlur = 10;
+                } else if (rowSum > target) {
+                    c.fillStyle = '#e74c3c'; // Red for overload bust
+                    c.font = `900 ${Math.round(this.cellSize * 0.45)}px Nunito, sans-serif`;
+                } else {
+                    c.fillStyle = activeContribution ? '#f39c12' : 'rgba(0,0,0,0.5)'; // Orange if active piece touches it, else gray
+                    c.font = `800 ${Math.round(this.cellSize * 0.45)}px Nunito, sans-serif`;
+                }
+                
+                c.fillText(rowSum.toString(), cx, cy);
+            }
+        }
+        c.restore();
 
         this._tickSweeps(c);
         this._tickParticles(c);
