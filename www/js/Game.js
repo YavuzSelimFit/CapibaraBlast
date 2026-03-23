@@ -1,8 +1,8 @@
-import Renderer from './Renderer.js?v=9';
-import Grid from './Grid.js?v=9';
-import Input from './Input.js?v=9';
-import BlockFactory from './BlockFactory.js?v=9';
-import Audio from './Audio.js?v=12';
+import Renderer from './Renderer.js?v=33';
+import Grid from './Grid.js?v=33';
+import Input from './Input.js?v=33';
+import BlockFactory from './BlockFactory.js?v=33';
+import Audio from './Audio.js?v=33';
 
 class Game {
     constructor() {
@@ -42,8 +42,10 @@ class Game {
     }
 
     boot() {
+        console.log('Game booting...');
         this.input = new Input(this);
         this._bindUI();
+        console.log('UI Bound');
         
         // No auto-start or splash-click-anywhere. 
         // btn-start in _bindUI will trigger the transition.
@@ -378,6 +380,7 @@ class Game {
         // Splash to Main Menu migration
         const spl = document.getElementById('splash');
         document.getElementById('btn-start')?.addEventListener('click', () => {
+            console.log('Start button clicked!');
             if (spl) spl.classList.add('gone');
             this.isPaused = false;
             this.lastTime = performance.now();

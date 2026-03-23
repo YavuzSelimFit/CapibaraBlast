@@ -9,7 +9,16 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="assets/mascot.png">
-    <link rel="stylesheet" href="css/style.css?v=28">
+    <link rel="stylesheet" href="css/style.css?v=33">
+    <script>
+        // Emergency Debug: Alert errors on device
+        window.onerror = function(msg, url, line) {
+            alert('CRASH: ' + msg + ' at ' + url + ':' + line);
+        };
+        console.log = function(msg) {
+            // Optional: alert('LOG: ' + msg); 
+        };
+    </script>
 </head>
 <body>
 
@@ -37,11 +46,9 @@
     
     <!-- DEVASA DIŞARI TAŞAN GÜÇLER -->
     <div class="powerups">
-        <button class="power-btn" id="pu-hammer" title="Hammer"><img src="assets/hammer.png" alt="H"></button>
-        <button class="power-btn" id="pu-shuffle" title="Shuffle"><img src="assets/shuffle.png" alt="S"></button>
-        <button class="power-btn" id="pu-plus" title="+1">
-            <span style="font-size: 24px; font-weight: 900; color: #fff; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5))">+1</span>
-        </button>
+        <button class="power-btn" id="pu-hammer" title="Hammer"><img src="assets/btn_hammer.png" alt="H"></button>
+        <button class="power-btn" id="pu-shuffle" title="Shuffle"><img src="assets/btn_shuffle.png" alt="S"></button>
+        <button class="power-btn" id="pu-bomb" title="Bomb"><img src="assets/btn_bomb.png" alt="B"></button>
     </div>
 
     <!-- ─── BOARD ─── -->
@@ -55,20 +62,22 @@
 <!-- ─── GAME OVER ─── -->
 <div id="gameover" class="overlay hidden">
     <div class="modal-box">
-        <h2>💦 Out of Space!</h2>
+        <img src="assets/water_drop.png" style="width: 40px; margin-bottom: 5px;" alt="Water Drop">
+        <h2>Out of Space!</h2>
+        <img src="assets/capy_crying.png" style="width: 120px; margin-bottom: 10px;" alt="Crying Capy">
         <p>Score: <span id="final-score">0</span></p>
-        <button class="btn btn-primary" id="btn-revive">🎬 Watch Ad to Revive</button>
-        <button class="btn btn-secondary" id="btn-restart">Try Again</button>
+        <button class="btn btn-menu" id="btn-revive" style="height: 70px;"><img src="assets/btn_revive.png" alt="Revive"></button>
+        <button class="btn btn-menu" id="btn-restart"><img src="assets/btn_restart.png" alt="Try Again"></button>
     </div>
 </div>
 
 <!-- ─── MAIN MENU ─── -->
 <div id="splash" class="overlay menu-overlay">
     <div class="menu-content">
-        <img src="assets/main_menu_bg.png" class="menu-art" alt="Capybara Main Menu Art">
-        <h1>Capy Merge & Blast</h1>
-        <button id="btn-start" class="btn btn-primary menu-btn">Oyuna Başla</button>
-        <button id="btn-scores" class="btn btn-secondary menu-btn">En İyi Skorlar</button>
+        <img src="assets/game_title.png" class="menu-title-img" alt="Capy Merge & Blast">
+        <img src="assets/capy_joy.png" class="menu-art" alt="Capybara Main Menu Art">
+        <button id="btn-start" class="btn btn-menu"><img src="assets/btn_play.png" alt="Oyuna Başla"></button>
+        <button id="btn-scores" class="btn btn-menu"><img src="assets/btn_scores.png" alt="En İyi Skorlar"></button>
     </div>
 </div>
 
@@ -83,11 +92,11 @@
 </div>
 
 <!-- ─── SCRIPTS ─── -->
-<script type="module" src="js/Game.js?v=28"></script>
+<script type="module" src="js/Game.js?v=33"></script>
 <script>
     // Force PWA update
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js?v=28').then(reg => {
+        navigator.serviceWorker.register('sw.js?v=29').then(reg => {
             reg.update(); // strongly force update check
         });
     }

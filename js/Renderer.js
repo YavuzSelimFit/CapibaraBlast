@@ -34,16 +34,12 @@ export default class Renderer {
     }
 
     _loadAssets() {
-        [1,2,3].forEach(n => {
+        [2, 4, 8, 16, 32, 64, 128, 256].forEach(val => {
             const img = new Image();
             img.onload = () => { 
-                this.imgAssets[n] = img;  // DO NOT run grid blocks through the Alpha filter (they are already transparent!)
-                if (window.gameInstance) { 
-                    this.render(window.gameInstance.active); 
-                    this.updateNext(window.gameInstance.next); 
-                } 
+                this.imgAssets[val] = img;
             };
-            img.src = `assets/block_${n}.png`;
+            img.src = `assets/block_${val}.png`;
         });
 
         // Pre-process animated sprite sheets to global CSS variables
@@ -249,105 +245,79 @@ export default class Renderer {
     }
 
     _drawBlock(ctx, val, x, y, size) {
-        let img = this.imgAssets[val];
-        let useFallbackTexture = false;
-        
-        if (!img || !img.complete || img.naturalWidth === 0) {
-            useFallbackTexture = true;
-        }
-
-        const sz = size + 0.5; 
-        const radius = Math.min(8, sz * 0.25); 
+        const sz = size + 0.5;
+        const radius = Math.min(10, sz * 0.25);
+        const img = this.imgAssets[val];
 
         ctx.save();
         ctx.beginPath();
         this._roundRectPath(ctx, x, y, sz, sz, radius);
         ctx.clip();
 
-        // 1. ADIM: Bloğun kendi orijinal pastel rengini arka plana boya
-        ctx.fillStyle = this.colors[val] || this.colors.default;
-        ctx.fillRect(x, y, sz, sz);
-
-        if (!useFallbackTexture) {
-            // 2. ADIM: Yapay Zeka görselini Multiply (Çoğalt) moduyla çiz!
-            // Bu hile sayesinde görseldeki BEYAZ renkler tamamen YOK OLUR,
-            // Sadece gölgeler ve detaylar alttaki pastel renge işlenir.
-            ctx.globalCompositeOperation = 'multiply';
+        if (img && img.complete) {
+            // New Premium Sprite (already has number and 3D look)
             ctx.drawImage(img, x, y, sz, sz);
-            
-            // Çizgi ve parlama efekti ekleyelim
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.lineWidth = 1.5;
-            ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-            ctx.stroke();
-            
-            // AI görselinin üstüne kalın, 3D etkili yazımızı çiziyoruz
+        } else {
+            // Fallback to Procedural Jelly if image not loaded
+            const baseColor = this.colors[val] || this.colors.default;
+            const bodyGrad = ctx.createLinearGradient(x, y, x, y + sz);
+            bodyGrad.addColorStop(0, this._lighten(baseColor, 25));
+            bodyGrad.addColorStop(1, this._darken(baseColor, 15));
+            ctx.fillStyle = bodyGrad;
+            ctx.fillRect(x, y, sz, sz);
             this._drawNumber(ctx, val, x, y, sz);
-            
-            ctx.restore();
-            return;
         }
 
-        // Eğer resim yüklenemediyse (Failsafe Modu)
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = 'rgba(0,0,0,0.15)';
-        ctx.stroke();
-
-        ctx.fillStyle = 'rgba(255,255,255,0.4)';
-        ctx.beginPath(); this._roundRectPath(ctx, x + 2, y + 2, sz - 4, size * 0.35, radius * 0.5); ctx.fill();
-        
-        this._drawNumber(ctx, val, x, y, sz);
-
         ctx.restore();
+    }
+
+    _lighten(hex, pct) {
+        const n = parseInt(hex.replace('#',''), 16);
+        const r = Math.min(255, (n >> 16) + Math.round(2.55 * pct));
+        const g = Math.min(255, ((n >> 8) & 0xFF) + Math.round(2.55 * pct));
+        const b = Math.min(255, (n & 0xFF) + Math.round(2.55 * pct));
+        return `rgb(${r},${g},${b})`;
+    }
+
+    _darken(hex, pct) {
+        const n = parseInt(hex.replace('#',''), 16);
+        const r = Math.max(0, (n >> 16) - Math.round(2.55 * pct));
+        const g = Math.max(0, ((n >> 8) & 0xFF) - Math.round(2.55 * pct));
+        const b = Math.max(0, (n & 0xFF) - Math.round(2.55 * pct));
+        return `rgb(${r},${g},${b})`;
     }
 
     _drawNumber(ctx, val, x, y, size) {
         ctx.save();
         const cx = x + size / 2;
         const cy = y + size / 2;
-        
-        const valStr = val.toString();
-        const len = valStr.length;
-        
-        let fontRatio = 0.55;
-        if (len === 2) fontRatio = 0.45;
-        else if (len >= 3) fontRatio = 0.33;
-
-        ctx.font = `900 ${Math.round(size * fontRatio)}px Nunito, sans-serif`;
+        ctx.font = `900 ${Math.round(size * 0.5)}px Nunito, sans-serif`;
         ctx.textAlign = 'center'; 
         ctx.textBaseline = 'middle';
-
-        // Outer Dropshadow
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-        ctx.shadowBlur = size * 0.15;
-        ctx.shadowOffsetY = size * 0.08;
-
-        // Dark Outline Stroke
-        ctx.lineWidth = Math.max(2, size * 0.12);
+        ctx.lineWidth = 4;
         ctx.strokeStyle = '#2c3e50'; 
-        ctx.strokeText(valStr, cx, cy + size * 0.05);
-
-        ctx.shadowBlur = 0; 
-        ctx.shadowOffsetY = 0;
-
-        // Gradient Fill
-        const grad = ctx.createLinearGradient(0, cy - size * 0.25, 0, cy + size * 0.25);
-        grad.addColorStop(0, '#ffffff');
-        grad.addColorStop(1, '#f1f2f6');
-        ctx.fillStyle = grad;
-        ctx.fillText(valStr, cx, cy + size * 0.05);
-
-        // Inner Bright Stroke for Pop
-        ctx.lineWidth = Math.max(1, size * 0.03);
-        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-        ctx.strokeText(valStr, cx, cy + size * 0.03);
-
+        ctx.strokeText(val, cx, cy);
+        ctx.fillStyle = '#fff';
+        ctx.fillText(val, cx, cy);
         ctx.restore();
     }
 
     boom(x, y, color, n) {
-        for (let i = 0; i < n; i++)
-            this.particles.push({ x, y, vx: (Math.random() - .5) * 10, vy: (Math.random() - .5) * 10 - 2, life: 1, color, size: Math.random() * 4 + 2 });
+        const types = ['leaf', 'star', 'drop'];
+        for (let i = 0; i < n; i++) {
+            const type = types[Math.floor(Math.random() * types.length)];
+            this.particles.push({
+                x, y,
+                vx: (Math.random() - 0.5) * 8,
+                vy: (Math.random() - 0.5) * 6 - 3,
+                life: 1,
+                color,
+                size: Math.random() * 5 + 3,
+                type,
+                spin: (Math.random() - 0.5) * 0.3,
+                angle: Math.random() * Math.PI * 2
+            });
+        }
     }
 
     sweepRow(y) {
@@ -371,7 +341,7 @@ export default class Renderer {
             c.shadowColor = 'white';
             c.shadowBlur = 15;
             
-            const thickness = 4 + (1 - s.life) * 25; // expands as it fades
+            const thickness = 4 + (1 - s.life) * 25;
             
             if (s.type === 'row') {
                 const cy = s.index * this.cellSize + this.cellSize / 2;
@@ -385,13 +355,56 @@ export default class Renderer {
     }
 
     _tickParticles(c) {
+        if (!this.dropImg) {
+            this.dropImg = new Image();
+            this.dropImg.src = 'assets/water_drop.png';
+        }
+
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
-            p.x += p.vx; p.y += p.vy; p.vy += 0.4; p.life -= 0.035;
+            p.x += p.vx;
+            p.y += p.vy;
+            p.vy += 0.35;           
+            p.vx *= 0.98;           
+            p.life -= 0.025;
+            p.angle += p.spin;
+
             if (p.life <= 0) { this.particles.splice(i, 1); continue; }
-            c.globalAlpha = p.life;
-            c.fillStyle = p.color;
-            c.beginPath(); c.arc(p.x, p.y, p.size, 0, Math.PI * 2); c.fill();
+
+            const scale = p.life;   
+            const drawSize = p.size * scale;
+
+            c.save();
+            c.globalAlpha = Math.min(1, p.life * 1.5);
+            c.translate(p.x, p.y);
+            c.rotate(p.angle);
+
+            if (p.type === 'leaf') {
+                c.fillStyle = '#6ec87a';
+                c.beginPath();
+                c.ellipse(0, 0, drawSize * 1.4, drawSize * 0.6, 0, 0, Math.PI * 2);
+                c.fill();
+            } else if (p.type === 'star') {
+                c.fillStyle = '#ffd700';
+                c.beginPath();
+                for (let s = 0; s < 5; s++) {
+                    const a = (s * 4 * Math.PI) / 5 - Math.PI / 2;
+                    const method = s === 0 ? 'moveTo' : 'lineTo';
+                    c[method](Math.cos(a) * drawSize, Math.sin(a) * drawSize);
+                }
+                c.closePath();
+                c.fill();
+            } else {
+                // Asset 6.2: Water Drop
+                if (this.dropImg.complete) {
+                    c.drawImage(this.dropImg, -drawSize/2, -drawSize/2, drawSize, drawSize);
+                } else {
+                    c.fillStyle = '#87ceeb';
+                    c.beginPath(); c.arc(0, 0, drawSize * 0.7, 0, Math.PI * 2); c.fill();
+                }
+            }
+
+            c.restore();
         }
         c.globalAlpha = 1;
     }
@@ -402,7 +415,6 @@ export default class Renderer {
         const img = document.createElement('img');
         img.src = `assets/${type}.png`;
         img.className = 'text-popup';
-        // Rastgele ufak rotasyon ekleyelim daha tatlı olsun
         const rot = (Math.random() - 0.5) * 20;
         img.style.setProperty('--target-rot', rot + 'deg');
         area.appendChild(img);
