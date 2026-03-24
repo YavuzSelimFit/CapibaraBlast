@@ -272,7 +272,6 @@ export default class Renderer {
         const BB = ((B.toString(16).length==1)?"0"+B.toString(16):B.toString(16));
         return "#"+RR+GG+BB;
     }
-    }
 
     _drawNumber(ctx, val, x, y, size) {
         ctx.save();
