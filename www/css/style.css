@@ -105,38 +105,23 @@ body::before {
 #score-card { background-image: url('../assets/score_frame.png'); }
 #level-card { background-image: url('../assets/level_frame.png'); }
 
-.stat-card .lbl { display: none; } /* Label is baked into Asset */
+.stat-card .lbl { display: block; font-size: 10px; font-weight: 900; color: rgba(0,0,0,0.4); text-transform: uppercase; }
 .stat-card .val {
-    font-size: 18px; font-weight: 900;
-    color: var(--text); margin-left: 20px; /* Offset for icon in asset */
-}
-.stat-card.target {
-    background: rgba(255, 243, 205, 0.4);
-    border: 1.5px solid rgba(212, 168, 67, 0.3);
-}
-.stat-card .lbl {
-    display: block; font-size: 9px; font-weight: 900;
-    color: #999; text-transform: uppercase; letter-spacing: .5px;
-}
-.stat-card .val {
-    display: block; font-size: 20px; font-weight: 900;
-    color: var(--text); line-height: 1.1;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    font-size: 22px; font-weight: 900;
+    color: var(--text);
 }
 
 .next-wrap {
     flex-shrink: 0;
-    width: 46px;
-    background: var(--card);
-    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-    border-radius: 14px;
-    display: flex; flex-direction: column; align-items: center;
-    padding: 2px;
-    box-shadow: 0 3px 8px rgba(0,0,0,0.06);
-    border: 1.5px solid rgba(255,255,255,0.5);
+    width: 50px; height: 50px;
+    background: rgba(255,255,255,0.2);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border: 1px solid rgba(255,255,255,0.3);
 }
-.next-wrap .lbl { font-size: 8px; font-weight: 900; color: #bbb; }
-#next-cv { display: block; }
+#next-cv { display: block; width: 40px; height: 40px; }
 
 /* Row 2: Progress bar */
 .progress-track {
@@ -153,9 +138,9 @@ body::before {
    POWER-UP BUTTONS — HUGE, Floating 3D
    ═══════════════════════════════════════════ */
 .powerups {
-    display: flex; gap: 30px;
-    position: absolute; right: 20px; top: -65px;
-    z-index: 1000;
+    display: flex; justify-content: center; gap: 20px;
+    padding: 10px;
+    margin-bottom: 10px;
 }
 .power-btn {
     width: 65px; height: 65px;
@@ -202,15 +187,16 @@ body::before {
    BOARD AREA — Glass Effect
    ═══════════════════════════════════════════ */
 .board-area {
-    width: 320px;
-    height: 400px; /* 8:10 Ratio (320x400) */
+    flex: 1;
+    width: 100%;
+    max-width: 440px;
     margin: 0 auto;
     position: relative;
-    background-image: url('../assets/grid_bg.png');
-    background-size: 100% 100%;
-    background-repeat: no-repeat;
-    border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    background: url('../assets/main_menu_bg.png') center/cover no-repeat;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: inset 0 0 100px rgba(0,0,0,0.5), 0 10px 30px rgba(0,0,0,0.3);
+    display: flex; flex-direction: column;
 }
 .board-grid {
     display: grid;
@@ -220,13 +206,9 @@ body::before {
     width: 100%; height: 100%;
 }
 #game-board {
+    width: 100%; height: 100%;
     display: block;
     background: transparent;
-    border-radius: 16px;
-    box-shadow:
-        inset 0 2px 8px rgba(0,0,0,0.03),
-        0 6px 24px rgba(0,0,0,0.08);
-    border: 1.5px solid rgba(255,255,255,0.4);
 }
 
 /* ═══════════════════════════════════════════

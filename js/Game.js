@@ -57,9 +57,14 @@ class Game {
 
     _start() {
         this.isPaused = false;
+        this.isGameOver = false;
         this._spawn();
         this.lastTime = performance.now();
-        this._loop(this.lastTime);
+        // Only start loop if not already running
+        if (!this._loopActive) {
+            this._loopActive = true;
+            requestAnimationFrame(t => this._loop(t));
+        }
     }
 
     _newPiece() {
@@ -72,10 +77,11 @@ class Game {
         this.next = this._newPiece();
         this.renderer.updateNext(this.next);
         
-        // EKSİK OLAN KISIM: Başlangıç x ve y koordinatlarını belirle
+        // Spawn at top-center of grid
         this.active.x = Math.floor((this.grid.width - this.active.grid[0].length) / 2);
         this.active.y = -this.active.grid.length; 
         
+        // Restore state variables for smooth rendering
         this.active.vx = this.active.x;
         this.active.vy = this.active.y;
         this.active.scaleX = 1.0;
@@ -89,18 +95,16 @@ class Game {
     }
 
     _loop(timestamp) {
-        if (this.isPaused || this.isGameOver) return;
+        if (this.isPaused || this.isGameOver) {
+            this._loopActive = false;
+            return;
+        }
+        this._loopActive = true;
         
         const dt = timestamp - this.lastTime;
         this.lastTime = timestamp;
 
-        // Decay trauma
-        if (this.trauma > 0) {
-            this.trauma = Math.max(0, this.trauma - 0.03);
-        }
-
-        // this.input.update();  <-- BU SATIRI TAMAMEN SİL VEYA YORUMA AL
-        this._tick(dt); // Keep _tick for game logic
+        this._tick(dt);
         this.renderer.render(this.active);
 
         requestAnimationFrame(t => this._loop(t));
@@ -382,10 +386,7 @@ class Game {
         document.getElementById('btn-start')?.addEventListener('click', () => {
             console.log('Start button clicked!');
             if (spl) spl.classList.add('gone');
-            this.isPaused = false;
-            this.lastTime = performance.now();
-            requestAnimationFrame(t => this._loop(t));
-            if (!this.active) this._spawn();
+            this._reset(); // Force a clean, fresh start on every 'Play' click
         });
 
         document.getElementById('btn-scores')?.addEventListener('click', () => this._showLeaderboard());
@@ -441,12 +442,16 @@ class Game {
         this.factory.level = 1;
         this.speed = this.baseSpeed;
         this.isGameOver = false;
+        this.isPaused = false;
         this._updateHUD();
         this.trauma = 0;
         this.next = this._newPiece();
         this._spawn();
         this.lastTime = performance.now();
-        this._loop(this.lastTime);
+        if (!this._loopActive) {
+            this._loopActive = true;
+            requestAnimationFrame(t => this._loop(t));
+        }
         this._saveState();
     }
 
