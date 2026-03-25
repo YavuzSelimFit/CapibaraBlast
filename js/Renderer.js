@@ -51,8 +51,8 @@ export default class Renderer {
         const aw = area.clientWidth - pad * 2;
         const ah = area.clientHeight - pad * 2;
         
-        // Use 95% of width to avoid 'small' cells on narrow screens
-        const gridAreaW = aw * 0.95;
+        // Use 100% of width to maximize cell size
+        const gridAreaW = aw;
         this.cellSize = Math.floor(Math.min(gridAreaW / this.grid.width, ah / this.grid.height));
         
         const w = aw; 
@@ -213,19 +213,25 @@ export default class Renderer {
                 const rowTarget = this.grid.rowThresholds[y] || 160;
                 const ratio = rowSum / rowTarget;
                 const ty = oy + y * s + s / 2;
-                const tx = ox + gw + 10;
+                const tx = ox + gw - 6; // Move INSIDE the grid (right edge)
                 
+                ctx.save();
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
                 if (ratio >= 1.0) {
                     ctx.fillStyle = '#2ecc71';
-                    ctx.font = `900 ${Math.round(s * 0.45)}px var(--font-main), sans-serif`;
+                    ctx.font = `900 ${Math.round(s * 0.42)}px var(--font-main), sans-serif`;
                 } else if (ratio >= 0.7 || activeContribution) {
                     ctx.fillStyle = '#f39c12';
-                    ctx.font = `800 ${Math.round(s * 0.35)}px var(--font-main), sans-serif`;
+                    ctx.font = `800 ${Math.round(s * 0.32)}px var(--font-main), sans-serif`;
                 } else {
-                    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+                    ctx.fillStyle = 'rgba(255,255,255,0.6)';
                     ctx.font = `700 ${Math.round(s * 0.3)}px var(--font-main), sans-serif`;
                 }
+                ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                ctx.shadowBlur = 4;
                 ctx.fillText(`${rowSum}/${rowTarget}`, tx, ty);
+                ctx.restore();
             }
         }
         ctx.restore();
@@ -233,23 +239,24 @@ export default class Renderer {
 
     _drawBlock(ctx, val, x, y, size) {
         const img = this.imgAssets[val];
-        // Reduce padding from 0.05 to 0.02 to make blocks look bigger
+        // Adaptive Scaling: Zoom in by 30% to hide large transparent margins in assets
+        const zoom = 1.30;
         const padding = size * 0.02;
-        const drawSize = size - padding * 2;
+        const drawSize = size * zoom;
         
         if (img && img.complete) {
             const aspect = img.width / img.height;
             let dw = drawSize, dh = drawSize;
             
-            // If the image is not perfectly square, fit it within the box
             if (aspect > 1) {
                 dh = drawSize / aspect;
             } else if (aspect < 1) {
                 dw = drawSize * aspect;
             }
 
-            const dx = x + padding + (drawSize - dw) / 2;
-            const dy = y + padding + (drawSize - dh) / 2;
+            // Center the zoomed-in block within the cell
+            const dx = x + (size - dw) / 2;
+            const dy = y + (size - dh) / 2;
             ctx.drawImage(img, dx, dy, dw, dh);
         } else {
             // HIGH-FIDELITY PROCEDURAL JELLY (3D Look)
@@ -379,9 +386,9 @@ export default class Renderer {
     }
 
     showFloatingText(text) {
-        // Map string to asset name: 'FANTASTIC!' -> 'fantastic' (or same)
-        const assetName = text.replace('!', '').toLowerCase();
-        this.spawnTextPopup(assetName);
+        let type = text.replace('!', '').toLowerCase();
+        if (type === 'delicious') type = 'perfect'; 
+        this.spawnTextPopup(type);
     }
 
     spawnTextPopup(type) {

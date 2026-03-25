@@ -182,6 +182,8 @@ class Game {
         // RECURSIVE PHYSICS LOOP: Merge -> Gravity -> Merge...
         let stable = false;
         let loopCount = 0;
+        let totalMergesInTurn = 0; 
+
         while (!stable && loopCount < 5) {
             stable = true;
             loopCount++;
@@ -190,9 +192,17 @@ class Game {
             const maxMerge = this.grid.mergeAdjacent();
             if (maxMerge > 0) {
                 stable = false;
+                totalMergesInTurn++;
                 this._haptic('MEDIUM');
                 this.audio.playMerge(maxMerge);
-                if (maxMerge >= 4) this._triggerPopin(maxMerge);
+                
+                if (maxMerge >= 4) {
+                    this._setMood('party');
+                    this._triggerPopin(maxMerge);
+                    if (maxMerge >= 6) this.renderer.showFloatingText('FANTASTIC!');
+                    else this.renderer.showFloatingText('DELICIOUS!');
+                }
+                
                 await sleep(80); // Visual pause for merging
             }
 
@@ -207,6 +217,20 @@ class Game {
         this._checkClears();
         this._saveState(); 
 
+        // Post-turn mood check (check height for panic)
+        let maxHeight = 0;
+        for (let x = 0; x < this.grid.width; x++) {
+            let h = 0;
+            while(h < this.grid.height && this.grid.cells[h][x] > 0) h++;
+            if (h > maxHeight) maxHeight = h;
+        }
+        
+        if (this.grid.height - maxHeight <= 2) {
+            this._setMood('panic');
+        } else if (totalMergesInTurn === 0) {
+            this._setMood('happy');
+        }
+
         this._spawn();
     }
 
@@ -217,9 +241,23 @@ class Game {
         void m.offsetWidth; // trigger reflow
         m.style.animation = 'capyBreathe 3s ease-in-out infinite';
         
-        if (mood === 'panic') m.style.backgroundImage = 'url("assets/capy_panic.png")';
-        else if (mood === 'party') m.style.backgroundImage = 'url("assets/capy_party.png")';
-        else m.style.backgroundImage = 'url("assets/capy_happy.png")';
+        // Single mascot, mood represented by subtle filters
+        if (mood === 'panic') {
+            m.style.filter = 'drop-shadow(0 4px 8px rgba(0,0,0,0.15)) saturate(1.5) hue-rotate(-20deg)';
+        } else if (mood === 'party') {
+            m.style.filter = 'drop-shadow(0 4px 8px rgba(0,0,0,0.15)) brightness(1.2) saturate(1.2)';
+        } else {
+            m.style.filter = 'drop-shadow(0 4px 8px rgba(0,0,0,0.15))';
+        }
+        
+        // Ensure mascot.png is used
+        m.style.backgroundImage = 'url("assets/mascot.png")';
+        m.style.backgroundSize = 'contain';
+        m.style.backgroundRepeat = 'no-repeat';
+        m.style.backgroundPosition = 'center';
+        m.style.width = '100%';
+        m.style.height = '100%';
+        m.style.display = 'block';
     }
 
     _checkClears() {
@@ -429,6 +467,25 @@ class Game {
         this.powerUpMode = name;
         document.querySelectorAll('.power-btn').forEach(b => b.classList.remove('active-power'));
         document.getElementById(name === 'hammer' ? 'pu-hammer' : (name === 'plus' ? 'pu-plus' : 'pu-shuffle'))?.classList.add('active-power');
+    }
+
+    _setMood(mood) {
+        const m = document.getElementById('mascot');
+        if (!m) return;
+        
+        // Remove all mood classes
+        m.classList.remove('mascot-panic', 'mascot-party');
+        
+        let asset = 'mascot.png';
+        if (mood === 'panic') {
+            asset = 'mascot_panic.png';
+            m.classList.add('mascot-panic');
+        } else if (mood === 'party') {
+            asset = 'mascot_party.png'; // Fallback to mascot.png if not exists, but we'll try to use it
+            m.classList.add('mascot-party');
+        }
+        
+        m.style.backgroundImage = `url('assets/${asset}')`;
     }
 
     _reset() {

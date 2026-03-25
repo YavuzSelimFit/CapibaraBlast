@@ -9,6 +9,9 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="assets/mascot.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lilita+One&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css?v=34.2">
     <script>
         // Emergency Debug: Alert errors on device
@@ -27,7 +30,6 @@
     <!-- ─── HEADER ─── -->
     <div class="game-header">
         <div class="top-row">
-            <!-- Profil Avatar Alanı (Sol Üst) -->
             <div class="mascot-frame">
                 <div id="mascot" title="Capy Mascot"></div>
             </div>
@@ -44,11 +46,11 @@
         <div class="progress-track"><div class="progress-fill" id="progress"></div></div>
     </div>
     
-    <!-- DEVASA DIŞARI TAŞAN GÜÇLER -->
+    <!-- ─── POWERUPS ─── -->
     <div class="powerups">
         <button class="power-btn" id="pu-hammer" title="Hammer"><img src="assets/btn_hammer.png" alt="H"></button>
         <button class="power-btn" id="pu-shuffle" title="Shuffle"><img src="assets/btn_shuffle.png" alt="S"></button>
-        <button class="power-btn" id="pu-bomb" title="Bomb"><img src="assets/btn_bomb.png" alt="B"></button>
+        <button class="power-btn" id="pu-plus" title="Bonus"><img src="assets/btn_bomb.png" alt="B"></button>
     </div>
 
     <!-- ─── BOARD ─── -->
@@ -59,27 +61,33 @@
     <div id="popin-capy" class="popin popin-left"></div>
 </div>
 
-<!-- ─── GAME OVER ─── -->
-<div id="gameover" class="overlay hidden">
-    <div class="modal-box">
-        <img src="assets/water_drop.png" style="width: 40px; margin-bottom: 5px;" alt="Water Drop">
-        <h2>Out of Space!</h2>
-        <img src="assets/capy_crying.png" style="width: 120px; margin-bottom: 10px;" alt="Crying Capy">
-        <p>Score: <span id="final-score">0</span></p>
-        <button class="btn btn-menu" id="btn-revive" style="height: 70px;"><img src="assets/btn_revive.png" alt="Revive"></button>
-        <button class="btn btn-menu" id="btn-restart"><img src="assets/btn_restart.png" alt="Try Again"></button>
+    <!-- ─── GAME OVER ─── -->
+    <div id="gameover" class="overlay hidden">
+        <div class="modal-box">
+            <div class="modal-icon">✨</div>
+            <h2>Out of Space!</h2>
+            <div class="mascot-frame menu-art-frame">
+                <img src="assets/mascot.png" class="mascot-img" alt="Mascot">
+            </div>
+            <p>Score: <span id="final-score">0</span></p>
+            <button class="btn btn-primary" id="btn-revive">CONTINUE</button>
+            <button class="btn btn-secondary" id="btn-restart">TRY AGAIN</button>
+        </div>
     </div>
-</div>
 
-<!-- ─── MAIN MENU ─── -->
-<div id="splash" class="overlay menu-overlay">
-    <div class="menu-content">
-        <img src="assets/game_title.png" class="menu-title-img" alt="Capy Merge & Blast">
-        <img src="assets/capy_joy.png" class="menu-art" alt="Capybara Main Menu Art">
-        <button id="btn-start" class="btn btn-menu"><img src="assets/btn_play.png" alt="Oyuna Başla"></button>
-        <button id="btn-scores" class="btn btn-menu"><img src="assets/btn_scores.png" alt="En İyi Skorlar"></button>
+    <!-- ─── MAIN MENU ─── -->
+    <div id="splash" class="overlay menu-overlay">
+        <div class="menu-content">
+            <img src="assets/game_title.png" class="menu-title-img" alt="Capy Merge & Blast">
+            <div class="menu-art-frame">
+                <img src="assets/mascot.png" class="menu-art" alt="Capybara">
+            </div>
+            <div class="menu-btns">
+                <button id="btn-start" class="btn btn-3d btn-play">PLAY NOW</button>
+                <button id="btn-scores" class="btn btn-3d btn-scores">LEADERBOARD</button>
+            </div>
+        </div>
     </div>
-</div>
 
 <!-- ─── LEADERBOARD MODAL ─── -->
 <div id="leaderboard-modal" class="overlay hidden">

@@ -9,10 +9,11 @@ export default class Renderer {
         this.cellSize = 0;
         this.imgAssets = {};
         this.particles = []; 
+        this.floatingTexts = [];
         this.sweeps = [];
         this.colors = { 
-            2:'#87ceeb', 4:'#ffd3b6', 8:'#c3aed6', 16:'#f5b7b1', 32:'#f9e79f', 
-            64:'#edbb99', 128:'#aed6f1', 256:'#a2d9ce', default:'#d5dbdb' 
+            1:'#e0f7fa', 2:'#a8e6cf', 4:'#dcedc1', 8:'#ffd3b6', 16:'#ffaaa5', 32:'#ff8b94', 
+            64:'#a29bfe', 128:'#74b9ff', 256:'#55efc4', default:'#dfe6e9' 
         };
 
         this._loadAssets();
@@ -35,21 +36,9 @@ export default class Renderer {
             img.src = `assets/block_${val}.png`;
         });
         
-        // Load miscellaneous assets
+        // Miscellaneous assets
         this.dropImg = new Image();
         this.dropImg.src = 'assets/water_drop.png';
-
-        // Restore Sprite Sheet loading for CSS animations
-        const loadSheet = (src, varName) => {
-            const sheet = new Image();
-            sheet.onload = () => {
-                document.documentElement.style.setProperty(varName, `url(${src})`);
-            };
-            sheet.src = src;
-        };
-        loadSheet('assets/capy_walk_sheet.png', '--url-walk');
-        loadSheet('assets/capy_party_sheet.png', '--url-party');
-        loadSheet('assets/capy_panic_sheet.png', '--url-panic');
     }
 
     resize() {
@@ -62,8 +51,8 @@ export default class Renderer {
         const aw = area.clientWidth - pad * 2;
         const ah = area.clientHeight - pad * 2;
         
-        // Use 95% of width to avoid 'small' cells on narrow screens
-        const gridAreaW = aw * 0.95;
+        // Use 100% of width to maximize cell size
+        const gridAreaW = aw;
         this.cellSize = Math.floor(Math.min(gridAreaW / this.grid.width, ah / this.grid.height));
         
         const w = aw; 
@@ -151,21 +140,50 @@ export default class Renderer {
         const gw = this.grid.width * s, gh = this.grid.height * s;
         
         ctx.save();
-        // Subtle background for the grid area
+        
+        // 1. Premium Glass Layer Background
         ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
         ctx.beginPath();
-        this._roundRectPath(ctx, ox, oy, gw, gh, 12);
+        this._roundRectPath(ctx, ox, oy, gw, gh, 15);
         ctx.fill();
-        
-        // Grid lines
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+
+        // 2. Inner Cell Glows (The "Glass" feel)
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
         ctx.lineWidth = 1;
+        for (let y = 0; y < this.grid.height; y++) {
+            for (let x = 0; x < this.grid.width; x++) {
+                const cx = ox + x * s;
+                const cy = oy + y * s;
+                // Subtle cell highlight (top-left)
+                ctx.beginPath();
+                ctx.moveTo(cx + 4, cy + s - 4);
+                ctx.lineTo(cx + 4, cy + 4);
+                ctx.lineTo(cx + s - 4, cy + 4);
+                ctx.stroke();
+            }
+        }
+
+        // 3. Main Grid Lines
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
         for (let x = 0; x <= this.grid.width; x++) {
-            ctx.beginPath(); ctx.moveTo(ox + x * s, oy); ctx.lineTo(ox + x * s, oy + gh); ctx.stroke();
+            ctx.moveTo(ox + x * s, oy);
+            ctx.lineTo(ox + x * s, oy + gh);
         }
         for (let y = 0; y <= this.grid.height; y++) {
-            ctx.beginPath(); ctx.moveTo(ox, oy + y * s); ctx.lineTo(ox + gw, oy + y * s); ctx.stroke();
+            ctx.moveTo(ox, oy + y * s);
+            ctx.lineTo(ox + gw, oy + y * s);
         }
+        ctx.stroke();
+
+        // 4. Outer Glowing Frame
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        this._roundRectPath(ctx, ox, oy, gw, gh, 15);
+        ctx.stroke();
+        
         ctx.restore();
     }
 
@@ -195,19 +213,25 @@ export default class Renderer {
                 const rowTarget = this.grid.rowThresholds[y] || 160;
                 const ratio = rowSum / rowTarget;
                 const ty = oy + y * s + s / 2;
-                const tx = ox + gw + 10;
+                const tx = ox + gw - 6; // Move INSIDE the grid (right edge)
                 
+                ctx.save();
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
                 if (ratio >= 1.0) {
                     ctx.fillStyle = '#2ecc71';
-                    ctx.font = `900 ${Math.round(s * 0.45)}px Nunito, sans-serif`;
+                    ctx.font = `900 ${Math.round(s * 0.42)}px var(--font-main), sans-serif`;
                 } else if (ratio >= 0.7 || activeContribution) {
                     ctx.fillStyle = '#f39c12';
-                    ctx.font = `800 ${Math.round(s * 0.35)}px Nunito, sans-serif`;
+                    ctx.font = `800 ${Math.round(s * 0.32)}px var(--font-main), sans-serif`;
                 } else {
-                    ctx.fillStyle = 'rgba(255,255,255,0.4)';
-                    ctx.font = `700 ${Math.round(s * 0.3)}px Nunito, sans-serif`;
+                    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                    ctx.font = `700 ${Math.round(s * 0.3)}px var(--font-main), sans-serif`;
                 }
+                ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                ctx.shadowBlur = 4;
                 ctx.fillText(`${rowSum}/${rowTarget}`, tx, ty);
+                ctx.restore();
             }
         }
         ctx.restore();
@@ -215,17 +239,24 @@ export default class Renderer {
 
     _drawBlock(ctx, val, x, y, size) {
         const img = this.imgAssets[val];
-        const padding = size * 0.05;
-        const drawSize = size - padding * 2;
+        // Adaptive Scaling: Zoom in by 30% to hide large transparent margins in assets
+        const zoom = 1.30;
+        const padding = size * 0.02;
+        const drawSize = size * zoom;
         
         if (img && img.complete) {
-            // ... (keep img drawing)
             const aspect = img.width / img.height;
             let dw = drawSize, dh = drawSize;
-            if (aspect > 1) dh = drawSize / aspect;
-            else dw = drawSize * aspect;
-            const dx = x + padding + (drawSize - dw) / 2;
-            const dy = y + padding + (drawSize - dh) / 2;
+            
+            if (aspect > 1) {
+                dh = drawSize / aspect;
+            } else if (aspect < 1) {
+                dw = drawSize * aspect;
+            }
+
+            // Center the zoomed-in block within the cell
+            const dx = x + (size - dw) / 2;
+            const dy = y + (size - dh) / 2;
             ctx.drawImage(img, dx, dy, dw, dh);
         } else {
             // HIGH-FIDELITY PROCEDURAL JELLY (3D Look)
@@ -235,24 +266,26 @@ export default class Renderer {
             
             ctx.save();
             // Main Body Gradient
-            const grad = ctx.createLinearGradient(bx, by, bx + bs, by + bs);
-            grad.addColorStop(0, baseColor);
-            grad.addColorStop(1, this._shadeColor(baseColor, -30));
+            const grad = ctx.createLinearGradient(bx, by, bx, by + bs);
+            grad.addColorStop(0, '#fff');
+            grad.addColorStop(0.1, baseColor);
+            grad.addColorStop(1, this._shadeColor(baseColor, -20));
+            
             ctx.fillStyle = grad;
             ctx.beginPath();
             this._roundRectPath(ctx, bx, by, bs, bs, r);
             ctx.fill();
             
-            // Glossy highlight bubble
-            ctx.fillStyle = 'rgba(255,255,255,0.4)';
-            ctx.beginPath();
-            this._roundRectPath(ctx, bx + bs/6, by + bs/8, bs/1.5, bs/3, r/2);
-            ctx.fill();
-            
-            // Inner glow
-            ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+            // Clean Stroke for separation
+            ctx.strokeStyle = 'rgba(0,0,0,0.1)';
             ctx.lineWidth = 2;
             ctx.stroke();
+            
+            // Subtle Top Shine
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.beginPath();
+            this._roundRectPath(ctx, bx + bs*0.1, by + bs*0.1, bs*0.8, bs*0.2, r/2);
+            ctx.fill();
             ctx.restore();
 
             this._drawNumber(ctx, val, x, y, size);
@@ -275,11 +308,18 @@ export default class Renderer {
 
     _drawNumber(ctx, val, x, y, size) {
         ctx.save();
-        ctx.font = `900 ${Math.round(size * 0.4)}px Nunito, sans-serif`;
+        // Larger, more impactful font
+        ctx.font = `900 ${Math.round(size * 0.55)}px var(--font-main), cursive`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        
+        // Outline for double clarity
+        ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+        ctx.lineWidth = 4;
+        ctx.strokeText(val, x + size/2, y + size/2 + size*0.05);
+        
         ctx.fillStyle = '#fff';
-        ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 4;
-        ctx.fillText(val, x + size/2, y + size/2);
+        ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 6;
+        ctx.fillText(val, x + size/2, y + size/2 + size*0.05); 
         ctx.restore();
     }
 
@@ -343,6 +383,12 @@ export default class Renderer {
             }
             c.restore();
         }
+    }
+
+    showFloatingText(text) {
+        let type = text.replace('!', '').toLowerCase();
+        if (type === 'delicious') type = 'perfect'; 
+        this.spawnTextPopup(type);
     }
 
     spawnTextPopup(type) {
