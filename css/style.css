@@ -284,22 +284,76 @@ body {
     display: flex; flex-direction: column; align-items: center;
     gap: 20px;
     width: 90%;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    padding: 30px;
+    border-radius: 40px;
+    border: 3px solid white;
+    max-width: 350px;
+    text-align: center;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.2);
 }
 
 .menu-title-img {
-    width: 90%; height: auto;
+    width: 100%;
+    max-width: 280px;
+    margin-bottom: 5px;
     filter: drop-shadow(0 10px 20px rgba(0,0,0,0.1));
 }
 
 .menu-art-frame {
-    width: 180px; height: 180px;
-    background: var(--glass-bg);
+    width: 140px; height: 140px;
+    background: white;
     border: 4px solid white;
     border-radius: 40px;
     display: flex; align-items: center; justify-content: center;
     overflow: hidden;
-    box-shadow: var(--card-shadow);
-    margin: 10px 0;
+    box-shadow: inset 0 0 15px rgba(0,0,0,0.05);
+    margin-bottom: 15px;
+}
+
+.menu-btns {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* 3D Premium Buttons */
+.btn-3d {
+    width: 100%;
+    padding: 16px 20px;
+    font-size: 20px;
+    font-family: var(--font-main);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.btn-play {
+    background: linear-gradient(to bottom, #74ebd5, #9face6);
+    box-shadow: 0 6px 0 #7aa4d4;
+}
+
+.btn-play:active {
+    transform: translateY(3px);
+    box-shadow: 0 3px 0 #7aa4d4;
+}
+
+.btn-scores {
+    background: linear-gradient(to bottom, #fbc2eb, #a6c1ee);
+    box-shadow: 0 6px 0 #9ca9d1;
+}
+
+.btn-scores:active {
+    transform: translateY(3px);
+    box-shadow: 0 3px 0 #9ca9d1;
 }
 
 .menu-art, .mascot-img {

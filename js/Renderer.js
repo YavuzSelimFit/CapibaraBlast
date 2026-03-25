@@ -233,15 +233,21 @@ export default class Renderer {
 
     _drawBlock(ctx, val, x, y, size) {
         const img = this.imgAssets[val];
-        const padding = size * 0.05;
+        // Reduce padding from 0.05 to 0.02 to make blocks look bigger
+        const padding = size * 0.02;
         const drawSize = size - padding * 2;
         
         if (img && img.complete) {
-            // ... (keep img drawing)
             const aspect = img.width / img.height;
             let dw = drawSize, dh = drawSize;
-            if (aspect > 1) dh = drawSize / aspect;
-            else dw = drawSize * aspect;
+            
+            // If the image is not perfectly square, fit it within the box
+            if (aspect > 1) {
+                dh = drawSize / aspect;
+            } else if (aspect < 1) {
+                dw = drawSize * aspect;
+            }
+
             const dx = x + padding + (drawSize - dw) / 2;
             const dy = y + padding + (drawSize - dh) / 2;
             ctx.drawImage(img, dx, dy, dw, dh);
