@@ -113,13 +113,22 @@ class Game {
     _tick(dt) {
         if (!this.active) return;
 
-        this.active.y += this.speed * dt;
-        if (!this.grid.canPlace(this.active.grid, this.active.x, this.active.y)) {
-            this.active.y = Math.floor(this.active.y);
+        const nextY = this.active.y + this.speed * dt;
+        
+        // Logical Correction: If the next position is blocked, find the last valid INTEGER position
+        if (!this.grid.canPlace(this.active.grid, this.active.x, nextY)) {
+            // If even the current floor is blocked, go one higher
+            if (!this.grid.canPlace(this.active.grid, this.active.x, Math.floor(nextY))) {
+                this.active.y = Math.floor(nextY) - 1;
+            } else {
+                this.active.y = Math.floor(nextY);
+            }
             this._lock();
-            this._shake(0.15); // subtle shake on normal lock
+            this._shake(0.15); 
             return;
         }
+
+        this.active.y = nextY;
 
         // Tweening & Squash/Stretch Mathematics
         const lerpDelay = 0.35;
@@ -199,6 +208,15 @@ class Game {
                 if (maxMerge >= 4) {
                     this._setMood('party');
                     this._triggerPopin(maxMerge);
+                    
+                    // Trigger new high-combo animation at merge site
+                    if (maxMerge >= 16) {
+                        const s = this.renderer.cellSize;
+                        const ox = this.renderer.gridOffsetX, oy = this.renderer.gridOffsetY;
+                        // Find a center for the merge (simplified)
+                        this.renderer.triggerComboAnimation(gx * s + s, gy * s + s);
+                    }
+
                     if (maxMerge >= 6) this.renderer.showFloatingText('FANTASTIC!');
                     else this.renderer.showFloatingText('DELICIOUS!');
                 }
@@ -412,7 +430,7 @@ class Game {
                 this.renderer.boom(gx * this.renderer.cellSize + 18, gy * this.renderer.cellSize + 18, '#fff', 12); 
                 this.grid.applyGravity(); // Drop everything resting on the destroyed block
             }
-            else if (this.powerUpMode === 'plus') { this.grid.cells[gy][gx]++; this.renderer.boom(gx * this.renderer.cellSize + 18, gy * this.renderer.cellSize + 18, '#ff0', 6); }
+            else if (this.powerUpMode === 'plus') { this.grid.cells[gy][gx] *= 2; this.renderer.boom(gx * this.renderer.cellSize + 18, gy * this.renderer.cellSize + 18, '#ff0', 6); }
 
             this.powerUpMode = null;
             document.querySelectorAll('.power-btn').forEach(b => b.classList.remove('active-power'));

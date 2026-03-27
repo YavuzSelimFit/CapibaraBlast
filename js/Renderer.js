@@ -11,6 +11,8 @@ export default class Renderer {
         this.particles = []; 
         this.floatingTexts = [];
         this.sweeps = [];
+        this.vfx = []; // For frame-based animations
+        this.comboFrames = []; 
         this.colors = { 
             1:'#e0f7fa', 2:'#a8e6cf', 4:'#dcedc1', 8:'#ffd3b6', 16:'#ffaaa5', 32:'#ff8b94', 
             64:'#a29bfe', 128:'#74b9ff', 256:'#55efc4', default:'#dfe6e9' 
@@ -39,6 +41,14 @@ export default class Renderer {
         // Miscellaneous assets
         this.dropImg = new Image();
         this.dropImg.src = 'assets/water_drop.png';
+
+        // Load Combo Animation Frames (001 to 016)
+        for (let i = 1; i <= 16; i++) {
+            const num = i.toString().padStart(3, '0');
+            const img = new Image();
+            img.src = `assets/ezgif-frame-${num}.png`;
+            img.onload = () => { this.comboFrames[i-1] = img; };
+        }
     }
 
     resize() {
@@ -133,6 +143,7 @@ export default class Renderer {
         this._drawRowSums(c, active, ghostY);
         this._tickSweeps(c);
         this._tickParticles(c);
+        this._tickVFX(c);
     }
 
     _drawProceduralGrid(ctx) {
@@ -400,6 +411,35 @@ export default class Renderer {
         img.style.setProperty('--target-rot', (Math.random() - 0.5) * 20 + 'deg');
         area.appendChild(img);
         setTimeout(() => img.remove(), 1500);
+    }
+
+    _tickVFX(c) {
+        const s = this.cellSize * 4; // Animation size relative to grid
+        for (let i = this.vfx.length - 1; i >= 0; i--) {
+            const v = this.vfx[i];
+            const img = this.comboFrames[v.frame];
+            if (img && img.complete) {
+                c.save();
+                c.globalAlpha = 0.9;
+                c.drawImage(img, v.x - s/2, v.y - s/2, s, s);
+                c.restore();
+            }
+            v.tick++;
+            if (v.tick >= v.frameDelay) {
+                v.tick = 0;
+                v.frame++;
+            }
+            if (v.frame >= 16) this.vfx.splice(i, 1);
+        }
+    }
+
+    triggerComboAnimation(x, y) {
+        this.vfx.push({
+            x: x, y: y,
+            frame: 0,
+            frameDelay: 3, // Approx 50ms per frame @ 60fps
+            tick: 0
+        });
     }
 
     getColor(v) { return this.colors[v] || this.colors.default; }
