@@ -209,16 +209,16 @@ class Game {
                     this._setMood('party');
                     this._triggerPopin(maxMerge);
                     
-                    // Trigger new high-combo animation at merge site
+                    // Trigger new high-combo animation at TOP CORNERS (vivid and non-blocking)
                     if (maxMerge >= 16) {
-                        const s = this.renderer.cellSize;
-                        const ox = this.renderer.gridOffsetX, oy = this.renderer.gridOffsetY;
-                        // Find a center for the merge (simplified)
-                        this.renderer.triggerComboAnimation(gx * s + s, gy * s + s);
+                        const topX = Math.random() > 0.5 ? 60 : (this.renderer.canvas.width / (window.devicePixelRatio || 1)) - 60;
+                        const topY = 80; // Near scores/header but away from blocks
+                        this.renderer.triggerComboAnimation(topX, topY);
+                        
+                        // Only show floating text for significant merges now
+                        if (maxMerge >= 32) this.renderer.showFloatingText('FANTASTIC!');
+                        else this.renderer.showFloatingText('PERFECT!');
                     }
-
-                    if (maxMerge >= 6) this.renderer.showFloatingText('FANTASTIC!');
-                    else this.renderer.showFloatingText('DELICIOUS!');
                 }
                 
                 await sleep(80); // Visual pause for merging

@@ -414,13 +414,15 @@ export default class Renderer {
     }
 
     _tickVFX(c) {
-        const s = this.cellSize * 4; // Animation size relative to grid
+        const s = this.cellSize * 5; // Slightly larger for better impact
         for (let i = this.vfx.length - 1; i >= 0; i--) {
             const v = this.vfx[i];
             const img = this.comboFrames[v.frame];
             if (img && img.complete) {
                 c.save();
-                c.globalAlpha = 0.9;
+                // "Lighter" mode makes colors pop and feel much more vivid/explosive
+                c.globalCompositeOperation = 'lighter';
+                c.globalAlpha = 1.0; 
                 c.drawImage(img, v.x - s/2, v.y - s/2, s, s);
                 c.restore();
             }
